@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Passage → Anki (Bangla + Personal SRS Server)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500;600&display=swap');
+
+    .tail-container { font-family: 'Inter', system-ui, sans-serif; }
+    .title-font { font-family: 'Space Grotesk', sans-serif; }
+
+    .flashcard { perspective: 1000px; height: 560px; }
+    .flashcard-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+      transform-style: preserve-3d;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    }
+    .flipped .flashcard-inner { transform: rotateY(180deg); }
+
+    .flashcard-front, .flashcard-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .flashcard-front {
+      background: linear-gradient(145deg, #1e2937, #334155);
+      color: white;
+    }
+
+    .flashcard-back {
+      background: linear-gradient(145deg, #f8fafc, #e0f2fe);
+      color: #0f172a;
+      transform: rotateY(180deg);
+    }
+
+    .word-text { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.04em; }
+    .native-text { font-size: 1.7rem; line-height: 1.3; font-weight: 700; }
+
+    .mini-card {
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(148,163,184,0.35);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .word-chip {
+      display: inline-block;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      margin: 4px 6px 0 0;
+    }
+    .word-chip.antonym { background: #fee2e2; color: #991b1b; }
+    .word-chip.synonym { background: #dcfce7; color: #166534; }
+
+    .badge-easy { background:#dcfce7; color:#166534; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
+    .badge-medium { background:#fef9c3; color:#854d0e; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
+    .badge-hard { background:#fee2e2; color:#991b1b; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
+    .badge-known { background:#ede9fe; color:#6d28d9; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
+    .badge-permanent { background:#dbeafe; color:#1d4ed8; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
+
+    .edit-input {
+      width: 100%;
+      background: #020617;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+      margin-top: 10px;
+    }
+    .edit-input:focus { border-color: #10b981; }
+
+    .desktop-tip {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 9999;
+      width: min(360px, calc(100vw - 32px));
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.4);
+      padding: 18px;
+    }
+
+    .language-card:hover {
+      transform: translateY(-2px);
+      border-color: #10b981;
+    }
+
+    mark {
+      background: #fde68a;
+      color: #0f172a;
+      padding: 0 4px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body class="tail-container bg-slate-950 text-slate-200 min-h-screen">
+  <!-- LANGUAGE CHOOSER -->
+  <div id="language-gate" class="fixed inset-0 z-[10000] bg-slate-950 flex items-center justify-center p-4">
+    <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="p-8 border-b border-slate-800">
+        <h1 class="title-font text-4xl font-semibold tracking-tighter text-white mb-2">Welcome</h1>
+        <p class="text-slate-300 text-lg">Choose your first language</p>
+        <p class="text-slate-400 text-sm mt-2">English will stay as the second language for everyone.</p>
+      </div>
+
+      <div class="p-6 border-b border-slate-800">
+        <input
+          id="language-search"
+          type="text"
+          placeholder="Search your language..."
+          class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-5 py-4 text-base focus:outline-none focus:border-emerald-500"
+        />
+      </div>
+
+      <div id="language-list" class="p-6 grid md:grid-cols-2 gap-4 max-h-[60vh] overflow-auto"></div>
+    </div>
+  </div>
+
+  <div class="max-w-3xl mx-auto p-6 hidden" id="app-shell">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="title-font text-4xl font-semibold tracking-tighter text-white">
+          Passage → Anki
+        </h1>
+        <p class="text-emerald-300 text-sm">
+          English • <span id="header-first-language">First Language</span> • Filters •
+          <span class="text-amber-300">🗄️ Personal SRS Server</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="openServerModal()"
+          class="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 transition px-5 py-2 rounded-2xl text-sm font-medium">
+          🗄️ My Server (<span id="server-count">0</span>)
+        </button>
+        <div class="flex items-center gap-2 text-xs bg-slate-900 px-3 py-1.5 rounded-full border border-slate-700">
+          <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+          <span class="font-mono">FULL MODE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT AREA -->
+    <div id="input-screen" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+      <div class="mb-4">
+        <label class="block text-slate-400 text-sm font-medium mb-2">Paste your English passage here</label>
+        <textarea id="passage" class="w-full h-72 bg-slate-950 border border-slate-700 rounded-2xl p-6 text-lg resize-none focus:outline-none focus:border-emerald-500 font-medium placeholder:text-slate-500" placeholder="Paste any GRE or textbook passage..."></textarea>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <div class="flex items-center gap-3 bg-slate-950 border border-slate-700 rounded-2xl p-5">
+          <input type="checkbox" id="filter-easy" checked class="w-6 h-6 accent-emerald-500 cursor-pointer">
+          <label for="filter-easy" class="text-slate-300 text-base cursor-pointer select-none flex-1">❌ Filter out very easy words</label>
+        </div>
+
+        <div class="flex items-center gap-3 bg-slate-950 border border-slate-700 rounded-2xl p-5">
+          <input type="checkbox" id="lemmatize" checked class="w-6 h-6 accent-emerald-500 cursor-pointer">
+          <label for="lemmatize" class="text-slate-300 text-base cursor-pointer select-none flex-1">Use base forms (finding → find)</label>
+        </div>
+      </div>
+
+      <div id="loading" class="hidden flex items-center justify-center gap-3 py-6 text-emerald-400 font-medium">
+        <span class="animate-spin text-2xl">⟳</span>
+        <span id="loading-text">Extracting + meaning + translation...</span>
+      </div>
+
+      <div class="flex gap-4">
+        <button onclick="generateFlashcards()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 transition text-white font-semibold py-5 rounded-2xl text-xl flex items-center justify-center gap-3">
+          ✨ Generate Anki Cards
+        </button>
+        <button onclick="clearInput()" class="px-8 bg-slate-800 hover:bg-slate-700 transition border border-slate-700 rounded-2xl font-medium">Clear</button>
+      </div>
+    </div>
+
+    <!-- PASSAGE STUDY -->
+    <div id="study-screen" class="hidden">
+      <div class="flex justify-between items-center mb-6 px-2">
+        <div class="flex items-center gap-3">
+          <div onclick="prevCard()" class="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-2xl cursor-pointer transition">←</div>
+          <div class="text-center">
+            <span id="card-number" class="text-3xl font-semibold text-white">1</span>
+            <span class="text-slate-500"> / </span>
+            <span id="total-cards" class="text-3xl font-semibold text-white">12</span>
+          </div>
+          <div onclick="nextCard()" class="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-2xl cursor-pointer transition">→</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="showAllCards()" class="px-5 py-2 text-sm bg-slate-800 hover:bg-slate-700 rounded-2xl transition">📋 All cards</button>
+          <button onclick="downloadForAnki()" class="px-5 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 rounded-2xl transition">⬇️ Export All</button>
+        </div>
+      </div>
+
+      <div id="flashcard" onclick="flipCard()" class="flashcard mx-auto max-w-md cursor-pointer">
+        <div id="flashcard-inner" class="flashcard-inner">
+          <div id="front" class="flashcard-front">
+            <div class="text-center">
+              <div class="text-emerald-400 text-sm font-medium tracking-[2px] mb-3">ENGLISH (BASE FORM)</div>
+              <div id="front-word" class="word-text text-white">find</div>
+              <div class="text-slate-400 text-xs mt-8">Tap to flip →</div>
+            </div>
+          </div>
+          <div id="back" class="flashcard-back overflow-hidden">
+            <div class="w-full h-full p-4 flex flex-col">
+              <div id="back-content" class="flex-1 overflow-auto text-left"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-4 mt-10">
+        <button onclick="flipCard()" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 rounded-3xl font-medium text-lg transition">🔄 Flip</button>
+        <button onclick="markEasy()" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-3xl font-medium text-lg transition">Easy 👍</button>
+        <button onclick="pushToServer()" class="px-8 py-4 bg-amber-600 hover:bg-amber-500 rounded-3xl font-medium text-lg transition flex items-center gap-2">💾 Push This Word</button>
+      </div>
+
+      <div onclick="restart()" class="text-center text-slate-400 hover:text-slate-300 cursor-pointer text-sm mt-8 underline">Start over</div>
+    </div>
+
+    <!-- ALL CARDS MODAL -->
+    <div id="all-cards-modal" onclick="if(event.target.id==='all-cards-modal') hideAllCards()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div onclick="event.stopImmediatePropagation()" class="bg-slate-900 w-full max-w-2xl mx-4 rounded-3xl max-h-[85vh] overflow-hidden">
+        <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+          <h2 class="font-semibold text-xl">All Vocabulary Cards</h2>
+          <button onclick="hideAllCards()" class="text-3xl text-slate-400">×</button>
+        </div>
+        <div class="px-6 py-4 bg-slate-800 border-b border-slate-700 flex justify-end">
+          <button onclick="pushAllToServer()" class="flex items-center gap-3 bg-amber-600 hover:bg-amber-500 transition px-8 py-3 rounded-2xl font-semibold text-lg shadow-inner">💾 Push ALL Words to My Server</button>
+        </div>
+        <div id="all-cards-list" class="p-6 overflow-auto max-h-[65vh] space-y-4"></div>
+      </div>
+    </div>
+
+    <!-- SERVER MODAL -->
+    <div id="server-modal" onclick="if(event.target.id==='server-modal') hideServerModal()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div onclick="event.stopImmediatePropagation()" class="bg-slate-900 w-full max-w-2xl mx-4 rounded-3xl max-h-[85vh] overflow-hidden">
+        <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+          <h2 class="font-semibold text-xl flex items-center gap-2">🗄️ My Personal SRS Server
+            <span class="text-xs bg-amber-600 px-3 py-1 rounded-full" id="saved-count">0 words saved</span>
+          </h2>
+          <div class="flex gap-3">
+            <button onclick="exportServerCSV()" class="text-sm bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-2xl">Export CSV</button>
+            <button onclick="deleteAllFromServer()" class="text-sm bg-red-600 hover:bg-red-500 px-5 py-2 rounded-2xl">🗑️ Delete All</button>
+            <button onclick="hideServerModal()" class="text-3xl text-slate-400">×</button>
+          </div>
+        </div>
+        <div class="px-6 py-4 bg-slate-800 border-b border-slate-700">
+          <button onclick="startServerStudy()"
+            class="w-full py-5 bg-violet-600 hover:bg-violet-500 transition rounded-3xl font-semibold text-xl flex items-center justify-center gap-3 shadow-inner">
+            📚 Study Now (Spaced Repetition)
+          </button>
+        </div>
+        <div id="server-list" class="p-6 overflow-auto max-h-[65vh] space-y-4"></div>
+      </div>
+    </div>
+
+    <!-- KNOW VOCABULARY MODAL -->
+    <div id="known-modal" onclick="if(event.target.id==='known-modal') hideKnownModal()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div onclick="event.stopImmediatePropagation()" class="bg-slate-900 w-full max-w-2xl mx-4 rounded-3xl max-h-[85vh] overflow-hidden">
+        <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+          <h2 class="font-semibold text-xl">You know Vocabulary
+            <span class="text-xs bg-violet-600 px-3 py-1 rounded-full ml-2" id="known-count">0</span>
+          </h2>
+          <button onclick="hideKnownModal()" class="text-3xl text-slate-400">×</button>
+        </div>
+        <div id="known-list" class="p-6 overflow-auto max-h-[70vh] space-y-4"></div>
+      </div>
+    </div>
+
+    <!-- DESKTOP SHORTCUT TIP -->
+    <div id="desktop-shortcut-tip" class="hidden desktop-tip">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-lg font-semibold mb-2">Keyboard shortcut tip</div>
+          <div class="text-sm text-slate-300 leading-relaxed">
+            On desktop, you can also use:
+            <div class="mt-2 font-semibold text-white">A = Again, H = Hard, G = Good, E = Easy</div>
+          </div>
+        </div>
+        <button onclick="hideDesktopTip()" class="text-slate-400 text-2xl leading-none">×</button>
+      </div>
+    </div>
+
+    <!-- SERVER STUDY -->
+    <div id="server-study-screen" class="hidden">
+      <div class="flex justify-between items-center mb-6 px-2">
+        <div class="flex items-center gap-3">
+          <div class="text-center">
+            <span id="server-card-number" class="text-3xl font-semibold text-white">1</span>
+            <span class="text-slate-500"> / </span>
+            <span id="server-total-cards" class="text-3xl font-semibold text-white">1</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openKnownModal()" class="px-5 py-2 text-sm bg-violet-700 hover:bg-violet-600 rounded-2xl transition">
+            📚 You know Vocabulary (<span id="study-known-count">0</span>)
+          </button>
+          <button onclick="finishServerStudy()" class="px-5 py-2 text-sm bg-slate-800 hover:bg-slate-700 rounded-2xl transition">End Session</button>
+        </div>
+      </div>
+
+      <div id="server-flashcard" onclick="serverFlipCard()" class="flashcard mx-auto max-w-md cursor-pointer">
+        <div id="server-flashcard-inner" class="flashcard-inner">
+          <div id="server-front" class="flashcard-front">
+            <div class="text-center">
+              <div class="text-violet-400 text-sm font-medium tracking-[2px] mb-3">ENGLISH WORD</div>
+              <div id="server-front-word" class="word-text text-white">find</div>
+              <div class="text-slate-400 text-xs mt-8">Tap to flip →</div>
+            </div>
+          </div>
+          <div id="server-back" class="flashcard-back overflow-hidden">
+            <div class="w-full h-full p-4 flex flex-col">
+              <div id="server-back-content" class="flex-1 overflow-auto text-left"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-10 px-4">
+        <button onclick="rateServerCard('again', 1)" class="bg-red-600 hover:bg-red-500 transition py-6 rounded-3xl font-medium text-lg flex flex-col items-center">
+          <span class="text-xl">Again</span>
+          <span class="text-xs opacity-75 mt-1">1 minute</span>
+        </button>
+        <button onclick="rateServerCard('hard', 10)" class="bg-amber-600 hover:bg-amber-500 transition py-6 rounded-3xl font-medium text-lg flex flex-col items-center">
+          <span class="text-xl">Hard</span>
+          <span class="text-xs opacity-75 mt-1">10 minutes</span>
+        </button>
+        <button onclick="rateServerCard('good', 1440)" class="bg-emerald-600 hover:bg-emerald-500 transition py-6 rounded-3xl font-medium text-lg flex flex-col items-center">
+          <span class="text-xl">Good</span>
+          <span class="text-xs opacity-75 mt-1">1 day</span>
+        </button>
+        <button onclick="rateServerCard('easy', 7200)" class="bg-blue-600 hover:bg-blue-500 transition py-6 rounded-3xl font-medium text-lg flex flex-col items-center">
+          <span class="text-xl">Easy</span>
+          <span class="text-xs opacity-75 mt-1">5 days</span>
+        </button>
+      </div>
+
+      <div class="text-center text-slate-400 text-sm mt-6">
+        Words stay in <span class="text-violet-300">You know Vocabulary</span> until their due time returns — or forever after 3 Easy clicks.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MERRIAM_API_KEY = "";
+    const MERRIAM_ENDPOINT = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/";
+    const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
+    const USER_LANGUAGE_KEY = "ankiUserFirstLanguage";
+    const SHORTCUT_TIP_KEY = "ankiShortcutTipShown";
+
+    const LANGUAGE_OPTIONS = [
+      { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
+      { code: "hi", name: "Hindi", native: "हिन्दी", label: "हिंदी अर्थ", aliases: ["hindi", "हिन्दी"] },
+      { code: "ur", name: "Urdu", native: "اردو", label: "اردو معنی", aliases: ["urdu", "اردو"] },
+      { code: "ar", name: "Arabic", native: "العربية", label: "المعنى", aliases: ["arabic", "العربية"] },
+      { code: "tr", name: "Turkish", native: "Türkçe", label: "Türkçe anlam", aliases: ["turkish", "türkçe"] },
+      { code: "fa", name: "Persian", native: "فارسی", label: "معنی", aliases: ["persian", "farsi", "فارسی"] },
+      { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian", "bahasa indonesia"] },
+      { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay", "bahasa melayu"] },
+      { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai", "ไทย"] },
+      { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese", "tiếng việt"] },
+      { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin", "中文"] },
+      { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese", "日本語"] },
+      { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean", "한국어"] },
+      { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian", "русский"] },
+      { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian", "українська"] },
+      { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish", "polski"] },
+      { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german", "deutsch"] },
+      { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french", "français"] },
+      { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish", "español"] },
+      { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese", "português"] },
+      { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian", "italiano"] },
+      { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch", "nederlands"] },
+      { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish", "svenska"] },
+      { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian", "norsk"] },
+      { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish", "dansk"] },
+      { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish", "suomi"] },
+      { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek", "ελληνικά"] },
+      { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian", "română"] },
+      { code: "hu", name: "Hungarian", native: "Magyar", label: "Jelentés", aliases: ["hungarian", "magyar"] },
+      { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech", "čeština"] },
+      { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew", "עברית"] },
+      { code: "tl", name: "Filipino", native: "Filipino", label: "Kahulugan", aliases: ["filipino", "tagalog"] }
+    ];
+
+    let currentUserLanguage = null;
+
+    let cards = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+
+    let serverStudyCards = [];
+    let serverStudyIndex = 0;
+    let serverIsFlipped = false;
+
+    let savedWords = JSON.parse(localStorage.getItem('ankiSavedWords')) || [];
+    savedWords = savedWords.map(w => ({
+      interval: 0,
+      due: Date.now(),
+      easyStreak: 0,
+      permanentlyKnown: false,
+      editingMeaning: false,
+      ...w
+    }));
+    localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
+
+    const commonEasyWords = new Set([
+      "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
+    ]);
+
+    function getUserLanguage() {
+      const code = localStorage.getItem(USER_LANGUAGE_KEY);
+      return LANGUAGE_OPTIONS.find(l => l.code === code) || null;
+    }
+
+    function saveUserLanguage(code) {
+      localStorage.setItem(USER_LANGUAGE_KEY, code);
+      currentUserLanguage = getUserLanguage();
+      applyUserLanguageToUI();
+      document.getElementById('language-gate').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+    }
+
+    function applyUserLanguageToUI() {
+      currentUserLanguage = getUserLanguage();
+      const header = document.getElementById('header-first-language');
+      if (header && currentUserLanguage) {
+        header.textContent = currentUserLanguage.native;
+      }
+    }
+
+    function getMeaningLabel() {
+      return currentUserLanguage?.label || "Meaning";
+    }
+
+    function initLanguageGate() {
+      currentUserLanguage = getUserLanguage();
+      if (currentUserLanguage) {
+        applyUserLanguageToUI();
+        document.getElementById('language-gate').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+        return;
+      }
+
+      renderLanguageList("");
+      document.getElementById('language-search').addEventListener('input', e => {
+        renderLanguageList(e.target.value || "");
+      });
+
+      document.getElementById('language-gate').classList.remove('hidden');
+      document.getElementById('app-shell').classList.add('hidden');
+    }
+
+    function renderLanguageList(query) {
+      const q = String(query).trim().toLowerCase();
+      const container = document.getElementById('language-list');
+      container.innerHTML = '';
+
+      const filtered = LANGUAGE_OPTIONS.filter(lang => {
+        const hay = [
+          lang.code,
+          lang.name,
+          lang.native,
+          ...(lang.aliases || [])
+        ].join(' ').toLowerCase();
+        return !q || hay.includes(q);
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="md:col-span-2 text-center py-10 text-slate-400">No language found.</div>`;
+        return;
+      }
+
+      filtered.forEach(lang => {
+        const btn = document.createElement('button');
+        btn.className = 'language-card text-left bg-slate-950 border border-slate-700 rounded-2xl p-5 transition';
+        btn.innerHTML = `
+          <div class="text-white font-semibold text-lg">${escapeHTML(lang.native)}</div>
+          <div class="text-slate-300 mt-1">${escapeHTML(lang.name)}</div>
+          <div class="text-slate-500 text-sm mt-1 uppercase">${escapeHTML(lang.code)}</div>
+        `;
+        btn.onclick = () => saveUserLanguage(lang.code);
+        container.appendChild(btn);
+      });
+    }
+
+    function persistSavedWords() {
+      localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
+      updateServerCount();
+      updateKnownCounts();
+    }
+
+    function isDesktop() {
+      return window.innerWidth >= 1024;
+    }
+
+    function shouldIgnoreShortcutTarget(target) {
+      if (!target) return false;
+      const tag = (target.tagName || "").toLowerCase();
+      return tag === "input" || tag === "textarea" || target.isContentEditable;
+    }
+
+    function showDesktopTipOnce() {
+      if (!isDesktop()) return;
+      const shown = localStorage.getItem(SHORTCUT_TIP_KEY);
+      if (shown === 'yes') return;
+      document.getElementById('desktop-shortcut-tip').classList.remove('hidden');
+      localStorage.setItem(SHORTCUT_TIP_KEY, 'yes');
+    }
+
+    function hideDesktopTip() {
+      document.getElementById('desktop-shortcut-tip').classList.add('hidden');
+    }
+
+    function simpleLemmatize(word) {
+      word = word.toLowerCase().trim();
+      const irregulars = {
+        'was':'be','were':'be','is':'be','am':'be','are':'be','has':'have','had':'have','did':'do',
+        'went':'go','gone':'go','came':'come','saw':'see','found':'find','took':'take','gave':'give',
+        'made':'make','better':'good','best':'good','worse':'bad','worst':'bad','children':'child'
+      };
+      if (irregulars[word]) return irregulars[word];
+      if (word.endsWith('ies')) return word.slice(0,-3)+'y';
+      if (word.endsWith('ves')) return word.slice(0,-3)+'f';
+      if (word.endsWith('es')) return word.slice(0,-2);
+      if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0,-1);
+      if (word.endsWith('ing')) {
+        let b = word.slice(0,-3);
+        if (b.length > 3 && b[b.length-1] === b[b.length-2]) b = b.slice(0,-1);
+        return b || word;
+      }
+      if (word.endsWith('ed')) {
+        let b = word.slice(0,-2);
+        if (b.endsWith('e')) b = b.slice(0,-1);
+        return b || word;
+      }
+      return word;
+    }
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m];
+      });
+    }
+
+    function highlightWord(text, word) {
+      const escaped = escapeHTML(text);
+      const safeWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b(${safeWord})\\b`, 'gi');
+      return escaped.replace(regex, '<mark>$1</mark>');
+    }
+
+    function dedupeStrings(arr) {
+      return [...new Set((arr || []).filter(Boolean).map(s => String(s).trim()).filter(Boolean))];
+    }
+
+    function isMostlyNative(text, langCode) {
+      if (!text) return false;
+      if (langCode === 'bn') {
+        const banglaChars = (text.match(/[\u0980-\u09FF]/g) || []).length;
+        const devanagariChars = (text.match(/[\u0900-\u097F]/g) || []).length;
+        if (devanagariChars > 0) return false;
+        return banglaChars > 0;
+      }
+      return text.trim().length > 0;
+    }
+
+    function normalizeDefinition(text) {
+      if (!text) return "";
+      return String(text).replace(/\s+/g, ' ').replace(/\{[^}]+\}/g, '').trim();
+    }
+
+    function sentenceContainsWord(sentence, surfaces) {
+      return Array.from(surfaces).some(surf => {
+        const re = new RegExp(`\\b${surf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        return re.test(sentence);
+      });
+    }
+
+    function makeEasyMeaningFallback(word) {
+      const w = String(word).toLowerCase();
+      const simpleMap = {
+        when: "used to ask or talk about the time something happens",
+        where: "used to ask or talk about the place of something",
+        why: "used to ask the reason for something",
+        how: "used to ask the way something happens or is done",
+        what: "used to ask for information about something",
+        who: "used to ask which person",
+        because: "for the reason that",
+        although: "in spite of the fact that",
+        however: "but; in a different way than expected",
+        therefore: "for that reason",
+        find: "to discover or get something",
+        analyze: "to study something carefully",
+        observe: "to watch carefully",
+        require: "to need something",
+        occur: "to happen",
+        affect: "to influence something",
+        indicate: "to show or point out",
+        improve: "to make better",
+        compare: "to examine similarities and differences"
+      };
+      if (simpleMap[w]) return simpleMap[w];
+      if (w.endsWith('tion') || w.endsWith('sion')) return "the act, process, or result of something";
+      if (w.endsWith('ment')) return "a result, condition, or process";
+      if (w.endsWith('ness')) return "the state or quality of something";
+      if (w.endsWith('ity')) return "a state, condition, or quality";
+      if (w.endsWith('ly')) return "in a particular way";
+      if (w.endsWith('ous')) return "having a particular quality";
+      if (w.endsWith('able') || w.endsWith('ible')) return "can be done or used in that way";
+      if (w.endsWith('ize') || w.endsWith('ise')) return "to make something become a certain way";
+      return `easy English meaning not available yet for "${w}"`;
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#f59e0b; color:white; padding:14px 28px; border-radius:9999px; font-weight:600; z-index:9999';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2200);
+    }
+
+    function updateServerCount() {
+      document.getElementById('server-count').textContent = savedWords.length;
+      document.getElementById('saved-count').textContent = `${savedWords.length} words saved`;
+    }
+
+    function getKnownWords() {
+      const now = Date.now();
+      return savedWords.filter(w => w.permanentlyKnown || (w.due || 0) > now);
+    }
+
+    function getDueStudyWords() {
+      const now = Date.now();
+      return savedWords.filter(w => !w.permanentlyKnown && (w.due || 0) <= now);
+    }
+
+    function formatRemainingTime(ms) {
+      if (ms <= 0) return "Ready now";
+      const minutes = Math.floor(ms / 60000);
+      const days = Math.floor(minutes / 1440);
+      const hours = Math.floor((minutes % 1440) / 60);
+      const mins = minutes % 60;
+      if (days > 0) return `${days} day${days > 1 ? 's' : ''}${hours ? ` ${hours}h` : ''}`;
+      if (hours > 0) return `${hours}h ${mins}m`;
+      return `${mins} minute${mins > 1 ? 's' : ''}`;
+    }
+
+    function updateKnownCounts() {
+      const knownCount = getKnownWords().length;
+      const studyKnown = document.getElementById('study-known-count');
+      const known = document.getElementById('known-count');
+      if (studyKnown) studyKnown.textContent = knownCount;
+      if (known) known.textContent = knownCount;
+    }
+
+    function renderWordChips(words, type) {
+      const list = dedupeStrings(words).slice(0, 8);
+      if (!list.length) return '<span class="text-slate-400 text-xs">Not available</span>';
+      return list.map(w => `<span class="word-chip ${type}">${escapeHTML(w)}</span>`).join('');
+    }
+
+    async function fetchMerriamData(word) {
+      if (!MERRIAM_API_KEY) return null;
+      try {
+        const url = `${MERRIAM_ENDPOINT}${encodeURIComponent(word)}?key=${encodeURIComponent(MERRIAM_API_KEY)}`;
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const data = await r.json();
+        if (!Array.isArray(data) || !data.length || typeof data[0] === "string") return null;
+
+        const entry = data.find(item => item && typeof item === "object" && Array.isArray(item.shortdef)) || data[0];
+        if (!entry || typeof entry !== "object") return null;
+
+        const shortdef = Array.isArray(entry.shortdef) ? entry.shortdef : [];
+        const meaning = normalizeDefinition(shortdef[0] || "");
+        const partOfSpeech = entry.fl || "";
+
+        let examples = [];
+        let synonyms = [];
+        let antonyms = [];
+
+        if (Array.isArray(entry.def)) {
+          for (const defBlock of entry.def) {
+            if (defBlock && Array.isArray(defBlock.sseq)) {
+              for (const sseqItem of defBlock.sseq) {
+                if (Array.isArray(sseqItem)) {
+                  for (const senseWrap of sseqItem) {
+                    if (Array.isArray(senseWrap) && senseWrap[0] === "sense" && senseWrap[1]?.dt) {
+                      for (const dtItem of senseWrap[1].dt) {
+                        if (Array.isArray(dtItem) && dtItem[0] === "vis" && Array.isArray(dtItem[1])) {
+                          dtItem[1].forEach(v => {
+                            if (v?.t) examples.push(String(v.t).replace(/\{it\}|\{\/it\}/g, ""));
+                          });
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        if (Array.isArray(entry.meta?.syns)) entry.meta.syns.forEach(group => { if (Array.isArray(group)) synonyms.push(...group); });
+        if (Array.isArray(entry.meta?.ants)) entry.meta.ants.forEach(group => { if (Array.isArray(group)) antonyms.push(...group); });
+
+        return {
+          meaning: meaning || "",
+          partOfSpeech,
+          examples: dedupeStrings(examples),
+          synonyms: dedupeStrings(synonyms),
+          antonyms: dedupeStrings(antonyms),
+          nativeMeaning: ""
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchFreeDictionaryData(word) {
+      try {
+        const url = `${FREE_DICT_ENDPOINT}en/${encodeURIComponent(word)}?translations=true`;
+        const r = await fetch(url);
+        if (!r.ok) return null;
+
+        const data = await r.json();
+        const entries = Array.isArray(data?.entries) ? data.entries : [];
+        if (!entries.length) return null;
+
+        let meaning = "";
+        let partOfSpeech = "";
+        let examples = [];
+        let synonyms = [];
+        let antonyms = [];
+        let nativeTranslations = [];
+
+        for (const entry of entries) {
+          if (!partOfSpeech && entry?.partOfSpeech) partOfSpeech = entry.partOfSpeech;
+          if (Array.isArray(entry?.synonyms)) synonyms.push(...entry.synonyms.map(String));
+          if (Array.isArray(entry?.antonyms)) antonyms.push(...entry.antonyms.map(String));
+
+          const senses = Array.isArray(entry?.senses) ? entry.senses : [];
+          for (const sense of senses) {
+            if (!meaning && sense?.definition) meaning = normalizeDefinition(sense.definition);
+            if (Array.isArray(sense?.examples)) examples.push(...sense.examples.map(String));
+            if (Array.isArray(sense?.synonyms)) synonyms.push(...sense.synonyms.map(String));
+            if (Array.isArray(sense?.antonyms)) antonyms.push(...sense.antonyms.map(String));
+
+            if (Array.isArray(sense?.translations)) {
+              sense.translations.forEach(tr => {
+                const code = String(tr?.language?.code || "").toLowerCase();
+                const name = String(tr?.language?.name || "").toLowerCase();
+                const w = String(tr?.word || "").trim();
+                const userCode = currentUserLanguage?.code?.toLowerCase();
+                const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
+                if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
+                  nativeTranslations.push(w);
+                }
+              });
+            }
+
+            const subsenses = Array.isArray(sense?.subsenses) ? sense.subsenses : [];
+            for (const sub of subsenses) {
+              if (!meaning && sub?.definition) meaning = normalizeDefinition(sub.definition);
+              if (Array.isArray(sub?.examples)) examples.push(...sub.examples.map(String));
+              if (Array.isArray(sub?.synonyms)) synonyms.push(...sub.synonyms.map(String));
+              if (Array.isArray(sub?.antonyms)) antonyms.push(...sub.antonyms.map(String));
+
+              if (Array.isArray(sub?.translations)) {
+                sub.translations.forEach(tr => {
+                  const code = String(tr?.language?.code || "").toLowerCase();
+                  const name = String(tr?.language?.name || "").toLowerCase();
+                  const w = String(tr?.word || "").trim();
+                  const userCode = currentUserLanguage?.code?.toLowerCase();
+                  const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
+                  if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
+                    nativeTranslations.push(w);
+                  }
+                });
+              }
+            }
+          }
+        }
+
+        return {
+          meaning: meaning || "",
+          partOfSpeech,
+          examples: dedupeStrings(examples),
+          synonyms: dedupeStrings(synonyms),
+          antonyms: dedupeStrings(antonyms),
+          nativeMeaning: dedupeStrings(nativeTranslations)[0] || ""
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchNativeMeaningFallback(word) {
+      const userCode = currentUserLanguage?.code || "bn";
+      try {
+        const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|${encodeURIComponent(userCode)}`);
+        const d = await r.json();
+        const translated = d?.responseData?.translatedText?.trim() || "";
+        if (!translated || !isMostlyNative(translated, userCode)) return "";
+        return translated;
+      } catch {
+        return "";
+      }
+    }
+
+    async function getDictionaryData(word) {
+      let primary = null;
+      let secondary = null;
+
+      if (MERRIAM_API_KEY) {
+        primary = await fetchMerriamData(word);
+        secondary = await fetchFreeDictionaryData(word);
+      } else {
+        primary = await fetchFreeDictionaryData(word);
+      }
+
+      const merged = {
+        meaning: primary?.meaning || secondary?.meaning || "",
+        partOfSpeech: primary?.partOfSpeech || secondary?.partOfSpeech || "",
+        examples: dedupeStrings([...(primary?.examples || []), ...(secondary?.examples || [])]),
+        synonyms: dedupeStrings([...(primary?.synonyms || []), ...(secondary?.synonyms || [])]),
+        antonyms: dedupeStrings([...(primary?.antonyms || []), ...(secondary?.antonyms || [])]),
+        nativeMeaning: primary?.nativeMeaning || secondary?.nativeMeaning || ""
+      };
+
+      if (!merged.nativeMeaning) merged.nativeMeaning = await fetchNativeMeaningFallback(word);
+      if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
+      if (!merged.meaning) merged.meaning = makeEasyMeaningFallback(word);
+
+      return merged;
+    }
+
+    function chooseBestApiExamples(apiExamples) {
+      return dedupeStrings(apiExamples).filter(ex => ex.length > 8).slice(0, 6);
+    }
+
+    function generateSmartExamples(word, apiExamples) {
+      const pool = chooseBestApiExamples(apiExamples);
+      let easy = pool[0] || `I use the word "${word}" in a simple sentence.`;
+      let medium = pool.find(x => x.toLowerCase() !== easy.toLowerCase()) || `We often use "${word}" in academic reading and writing.`;
+      let hard = pool.find(x => x.toLowerCase() !== easy.toLowerCase() && x.toLowerCase() !== medium.toLowerCase()) || `Researchers may use "${word}" in a more precise and technical way.`;
+
+      if (medium.toLowerCase() === easy.toLowerCase()) medium = `The meaning of "${word}" becomes clearer when used in context.`;
+      if (hard.toLowerCase() === easy.toLowerCase() || hard.toLowerCase() === medium.toLowerCase()) hard = `Advanced readers may notice a more nuanced use of "${word}".`;
+
+      return { easy, medium, hard };
+    }
+
+    async function generateFlashcards() {
+      if (!currentUserLanguage) return;
+      const passage = document.getElementById('passage').value.trim();
+      if (!passage) return alert("Paste a passage first!");
+
+      const loadingEl = document.getElementById('loading');
+      const loadingText = document.getElementById('loading-text');
+      loadingEl.classList.remove('hidden');
+      loadingText.textContent = 'Extracting words from passage...';
+
+      const sentenceRegex = /[^.!?]+[.!?]+|[^.!?]+$/g;
+      const rawSentences = passage.match(sentenceRegex) || [passage];
+      const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 6);
+
+      const wordRegex = /\b[a-zA-Z]+\b/g;
+      let surfaceWords = [...new Set((passage.match(wordRegex) || []).map(w => w.toLowerCase()))];
+
+      if (document.getElementById('filter-easy').checked) {
+        surfaceWords = surfaceWords.filter(w => !commonEasyWords.has(w) && w.length > 2);
+      }
+
+      const useLemmas = document.getElementById('lemmatize').checked;
+      const keyToSurfaces = new Map();
+
+      surfaceWords.forEach(s => {
+        const key = useLemmas ? simpleLemmatize(s) : s;
+        if (!keyToSurfaces.has(key)) keyToSurfaces.set(key, new Set());
+        keyToSurfaces.get(key).add(s);
+      });
+
+      const cardKeys = Array.from(keyToSurfaces.keys()).sort();
+      cards = [];
+
+      for (let i = 0; i < cardKeys.length; i++) {
+        const key = cardKeys[i];
+        const surfaces = keyToSurfaces.get(key);
+        const matching = sentences.filter(s => sentenceContainsWord(s, surfaces));
+        if (!matching.length) continue;
+
+        loadingText.textContent = `Fetching word data: ${key} (${i + 1}/${cardKeys.length})`;
+
+        const dictData = await getDictionaryData(key);
+        const examples = generateSmartExamples(key, dictData.examples);
+
+        cards.push({
+          front: key,
+          nativeMeaning: dictData.nativeMeaning,
+          back: matching.join('\n\n'),
+          meaning: dictData.meaning,
+          partOfSpeech: dictData.partOfSpeech,
+          synonyms: dictData.synonyms,
+          antonyms: dictData.antonyms,
+          examples
+        });
+      }
+
+      loadingEl.classList.add('hidden');
+
+      if (!cards.length) return alert("No words left after filters!");
+
+      document.getElementById('input-screen').classList.add('hidden');
+      document.getElementById('study-screen').classList.remove('hidden');
+
+      currentIndex = 0;
+      renderCurrentCard();
+      updateServerCount();
+      updateKnownCounts();
+    }
+
+    function renderCurrentCard() {
+      const card = cards[currentIndex];
+      document.getElementById('card-number').textContent = currentIndex + 1;
+      document.getElementById('total-cards').textContent = cards.length;
+      document.getElementById('front-word').textContent = card.front;
+
+      document.getElementById('back-content').innerHTML = `
+        <div class="text-center mb-4">
+          <div class="text-xs uppercase tracking-widest text-emerald-600 mb-2">${escapeHTML(getMeaningLabel())}</div>
+          <div class="native-text text-emerald-700">${escapeHTML(card.nativeMeaning)}</div>
+        </div>
+
+        <div class="mini-card mb-3">
+          <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">📖 Meaning in English</div>
+          <div class="text-slate-700 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Meaning not available')}</div>
+          <div class="mt-2 text-[11px] text-slate-500">
+            ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
+          </div>
+        </div>
+
+        <div class="mini-card mb-3">
+          <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
+          <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+        </div>
+
+        <div class="mini-card mb-3">
+          <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
+          <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+        </div>
+
+        <div class="mini-card">
+          <div class="text-xs font-medium text-slate-500 mb-3 tracking-widest">📄 CONTEXT FROM PASSAGE</div>
+          <div class="text-slate-700 leading-relaxed text-[13px] whitespace-pre-line">
+            ${card.back.split('\n\n').map(s => `<div class="mb-3">${highlightWord(s, card.front)}</div>`).join('')}
+          </div>
+        </div>
+      `;
+
+      isFlipped = false;
+      document.getElementById('flashcard').classList.remove('flipped');
+    }
+
+    function flipCard() {
+      isFlipped = !isFlipped;
+      document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
+    }
+
+    function nextCard() {
+      currentIndex = (currentIndex + 1) % cards.length;
+      renderCurrentCard();
+    }
+
+    function prevCard() {
+      currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+      renderCurrentCard();
+    }
+
+    function markEasy() { nextCard(); }
+
+    function pushToServer() {
+      const card = cards[currentIndex];
+      if (savedWords.some(w => w.front === card.front)) return alert("Already saved!");
+
+      savedWords.unshift({
+        front: card.front,
+        nativeMeaning: card.nativeMeaning,
+        back: card.back,
+        meaning: card.meaning,
+        partOfSpeech: card.partOfSpeech,
+        synonyms: card.synonyms,
+        antonyms: card.antonyms,
+        examples: card.examples,
+        editingMeaning: false,
+        easyStreak: 0,
+        permanentlyKnown: false,
+        date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+        due: Date.now(),
+        interval: 0
+      });
+
+      persistSavedWords();
+      showToast("✅ Pushed to server!");
+    }
+
+    function pushAllToServer() {
+      let added = 0;
+      cards.forEach(card => {
+        if (!savedWords.some(w => w.front === card.front)) {
+          savedWords.unshift({
+            front: card.front,
+            nativeMeaning: card.nativeMeaning,
+            back: card.back,
+            meaning: card.meaning,
+            partOfSpeech: card.partOfSpeech,
+            synonyms: card.synonyms,
+            antonyms: card.antonyms,
+            examples: card.examples,
+            editingMeaning: false,
+            easyStreak: 0,
+            permanentlyKnown: false,
+            date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+            due: Date.now(),
+            interval: 0
+          });
+          added++;
+        }
+      });
+
+      persistSavedWords();
+      showToast(`✅ ${added} words added to server!`);
+      hideAllCards();
+    }
+
+    function deleteAllFromServer() {
+      if (!savedWords.length) {
+        alert("Server is already empty!");
+        return;
+      }
+
+      const ok = confirm("Are you sure you want to delete ALL saved vocabulary from server?");
+      if (!ok) return;
+
+      savedWords = [];
+      persistSavedWords();
+      openServerModal();
+      showToast("🗑️ All vocabulary deleted from server!");
+    }
+
+    function toggleMeaningEdit(index) {
+      savedWords[index].editingMeaning = !savedWords[index].editingMeaning;
+      persistSavedWords();
+      openServerModal();
+      if (savedWords[index].editingMeaning) {
+        setTimeout(() => {
+          const input = document.getElementById(`edit-native-${index}`);
+          if (input) {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+          }
+        }, 0);
+      }
+    }
+
+    function cancelMeaningEdit(index) {
+      savedWords[index].editingMeaning = false;
+      persistSavedWords();
+      openServerModal();
+    }
+
+    function saveMeaningEdit(index) {
+      const input = document.getElementById(`edit-native-${index}`);
+      if (!input) return;
+
+      const rawValue = input.value;
+      const cleaned = rawValue.trim().replace(/[ ]{2,}/g, ' ');
+      if (!cleaned) {
+        alert(`${getMeaningLabel()} cannot be empty.`);
+        return;
+      }
+
+      savedWords[index].nativeMeaning = cleaned;
+      savedWords[index].editingMeaning = false;
+      persistSavedWords();
+      openServerModal();
+      showToast("✅ Meaning updated!");
+    }
+
+    function exportServerCSV() {
+      if (!savedWords.length) return alert("Nothing to export!");
+      let csv = `English\t${getMeaningLabel()}\tMeaning in English\tPart Of Speech\tSynonyms\tAntonyms\tContext\tEasy Example\tMedium Example\tHard Example\tDue\tEasy Streak\tPermanent Known\tDate\n`;
+
+      savedWords.forEach(item => {
+        const safeBack = (item.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
+        const safeMeaning = (item.meaning || '').replace(/\t/g, ' ');
+        const safeSynonyms = (item.synonyms || []).join(', ').replace(/\t/g, ' ');
+        const safeAntonyms = (item.antonyms || []).join(', ').replace(/\t/g, ' ');
+        const dueText = item.permanentlyKnown ? 'Permanent' : new Date(item.due || Date.now()).toLocaleString();
+        const ex = item.examples || {};
+        csv += `"${item.front}"\t"${item.nativeMeaning}"\t"${safeMeaning}"\t"${item.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\t"${(ex.easy || '').replace(/\t/g,' ')}"\t"${(ex.medium || '').replace(/\t/g,' ')}"\t"${(ex.hard || '').replace(/\t/g,' ')}"\t"${dueText}"\t"${item.easyStreak || 0}"\t"${item.permanentlyKnown ? 'Yes' : 'No'}"\t"${item.date || ''}"\n`;
+      });
+
+      const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'My_SRS_Server.csv';
+      a.click();
+    }
+
+    function downloadForAnki() {
+      let csv = `English (Base Form)\t${getMeaningLabel()}\tMeaning in English\tPart Of Speech\tSynonyms\tAntonyms\tContext\n`;
+      cards.forEach(card => {
+        const safeBack = (card.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
+        const safeMeaning = (card.meaning || '').replace(/\t/g, ' ');
+        const safeSynonyms = (card.synonyms || []).join(', ').replace(/\t/g, ' ');
+        const safeAntonyms = (card.antonyms || []).join(', ').replace(/\t/g, ' ');
+        csv += `"${card.front}"\t"${card.nativeMeaning}"\t"${safeMeaning}"\t"${card.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'passage_vocabulary.csv';
+      a.click();
+    }
+
+    function showAllCards() {
+      const container = document.getElementById('all-cards-list');
+      container.innerHTML = '';
+
+      cards.forEach((card, i) => {
+        const div = document.createElement('div');
+        div.className = 'bg-slate-800 rounded-2xl p-5 hover:bg-slate-700 transition cursor-pointer';
+        div.innerHTML = `
+          <div class="flex gap-4 items-start">
+            <div class="font-mono text-emerald-400 text-xl font-bold">${i+1}</div>
+            <div class="flex-1">
+              <div class="font-semibold text-lg">${escapeHTML(card.front)}</div>
+              <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(card.nativeMeaning)}</div>
+              <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML((card.meaning || '').substring(0,90))}${(card.meaning || '').length > 90 ? '...' : ''}</div>
+              <div class="text-slate-400 text-xs mt-2">${escapeHTML(card.partOfSpeech || '')}</div>
+              <div class="mt-3">
+                <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">Synonyms</div>
+                <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+              </div>
+              <div class="mt-3">
+                <div class="text-[11px] uppercase tracking-widest text-red-300 mb-1">Antonyms</div>
+                <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+              </div>
+            </div>
+          </div>
+        `;
+        div.onclick = () => {
+          currentIndex = i;
+          hideAllCards();
+          renderCurrentCard();
+        };
+        container.appendChild(div);
+      });
+
+      document.getElementById('all-cards-modal').classList.remove('hidden');
+    }
+
+    function hideAllCards() {
+      document.getElementById('all-cards-modal').classList.add('hidden');
+    }
+
+    function openServerModal() {
+      const container = document.getElementById('server-list');
+      container.innerHTML = savedWords.length ? '' : `<div class="text-center py-12 text-slate-400">Your server is empty.<br>Push some words!</div>`;
+
+      savedWords.forEach((item, i) => {
+        const editing = !!item.editingMeaning;
+        const dueInfo = item.permanentlyKnown
+          ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
+          : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
+
+        const div = document.createElement('div');
+        div.className = 'bg-slate-800 rounded-2xl p-5 flex gap-4';
+        div.innerHTML = `
+          <div class="flex-1">
+            <div class="flex justify-between">
+              <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
+              <div class="text-amber-400 text-xs">${escapeHTML(item.date || '')}</div>
+            </div>
+
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
+              ${dueInfo}
+            </div>
+
+            <div class="mt-3">
+              <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">${escapeHTML(getMeaningLabel())}</div>
+
+              ${editing ? `
+                <input
+                  id="edit-native-${i}"
+                  class="edit-input"
+                  type="text"
+                  value="${escapeHTML(item.nativeMeaning)}"
+                  onclick="event.stopPropagation()"
+                />
+                <div class="flex justify-end gap-2 mt-2">
+                  <button onclick="saveMeaningEdit(${i});event.stopPropagation()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">
+                    Save
+                  </button>
+                  <button onclick="cancelMeaningEdit(${i});event.stopPropagation()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2 rounded-xl">
+                    Cancel
+                  </button>
+                </div>
+              ` : `
+                <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(item.nativeMeaning)}</div>
+                <div class="flex justify-end mt-2">
+                  <button onclick="toggleMeaningEdit(${i});event.stopPropagation()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl">
+                    Edit Meaning
+                  </button>
+                </div>
+              `}
+            </div>
+
+            <div class="text-blue-300 text-xs mt-3 italic">${escapeHTML((item.meaning || '').substring(0,90))}${(item.meaning || '').length > 90 ? '...' : ''}</div>
+            <div class="text-slate-400 text-xs mt-2">${escapeHTML(item.partOfSpeech || '')}</div>
+
+            <div class="mt-3">
+              <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">Synonyms</div>
+              <div>${renderWordChips(item.synonyms, 'synonym')}</div>
+            </div>
+
+            <div class="mt-3">
+              <div class="text-[11px] uppercase tracking-widest text-red-300 mb-1">Antonyms</div>
+              <div>${renderWordChips(item.antonyms, 'antonym')}</div>
+            </div>
+          </div>
+
+          <button onclick="deleteFromServer(${i});event.stopImmediatePropagation()" class="text-red-400 hover:text-red-500 text-2xl self-start">×</button>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('server-modal').classList.remove('hidden');
+      updateServerCount();
+      updateKnownCounts();
+    }
+
+    function deleteFromServer(i) {
+      savedWords.splice(i, 1);
+      persistSavedWords();
+      openServerModal();
+    }
+
+    function hideServerModal() {
+      document.getElementById('server-modal').classList.add('hidden');
+    }
+
+    function openKnownModal() {
+      const knownWords = getKnownWords();
+      const list = document.getElementById('known-list');
+      list.innerHTML = '';
+
+      if (!knownWords.length) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400">No words in You know Vocabulary yet.</div>`;
+      } else {
+        knownWords
+          .sort((a, b) => {
+            if (a.permanentlyKnown && !b.permanentlyKnown) return -1;
+            if (!a.permanentlyKnown && b.permanentlyKnown) return 1;
+            return (a.due || 0) - (b.due || 0);
+          })
+          .forEach(item => {
+            const dueInfo = item.permanentlyKnown
+              ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
+              : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
+
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800 rounded-2xl p-5';
+            div.innerHTML = `
+              <div class="flex justify-between items-start gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
+                    ${dueInfo}
+                  </div>
+                  <div class="native-text text-emerald-400 text-lg mt-2">${escapeHTML(item.nativeMeaning)}</div>
+                  <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML(item.meaning || '')}</div>
+                </div>
+              </div>
+            `;
+            list.appendChild(div);
+          });
+      }
+
+      updateKnownCounts();
+      document.getElementById('known-modal').classList.remove('hidden');
+    }
+
+    function hideKnownModal() {
+      document.getElementById('known-modal').classList.add('hidden');
+    }
+
+    function rebuildStudyQueue(preferredFront = null) {
+      serverStudyCards = getDueStudyWords()
+        .sort((a, b) => (a.due || 0) - (b.due || 0))
+        .map(c => ({ ...c }));
+
+      if (!serverStudyCards.length) {
+        document.getElementById('server-card-number').textContent = 0;
+        document.getElementById('server-total-cards').textContent = 0;
+        document.getElementById('server-front-word').textContent = "Done";
+        document.getElementById('server-back-content').innerHTML = `
+          <div class="text-center w-full">
+            <div class="text-2xl font-bold text-slate-700 mb-3">No due words right now</div>
+            <div class="text-slate-500 mb-6">Words will come back automatically when their time is over.</div>
+            <div class="text-violet-700 font-semibold">Check "You know Vocabulary" to see hidden or known words.</div>
+          </div>
+        `;
+        document.getElementById('server-flashcard').classList.remove('flipped');
+        serverStudyIndex = 0;
+        updateKnownCounts();
+        return;
+      }
+
+      let newIndex = 0;
+      if (preferredFront) {
+        const found = serverStudyCards.findIndex(c => c.front === preferredFront);
+        if (found >= 0) newIndex = found;
+        else newIndex = Math.min(serverStudyIndex, serverStudyCards.length - 1);
+      } else {
+        newIndex = Math.min(serverStudyIndex, serverStudyCards.length - 1);
+      }
+
+      serverStudyIndex = Math.max(0, newIndex);
+      updateKnownCounts();
+      renderServerStudyCard();
+    }
+
+    function startServerStudy() {
+      if (!savedWords.length) {
+        alert("Your server is empty!\nPush some words first.");
+        return;
+      }
+
+      document.getElementById('input-screen').classList.add('hidden');
+      document.getElementById('study-screen').classList.add('hidden');
+      document.getElementById('server-modal').classList.add('hidden');
+      document.getElementById('server-study-screen').classList.remove('hidden');
+
+      serverStudyIndex = 0;
+      serverIsFlipped = false;
+      rebuildStudyQueue();
+      updateKnownCounts();
+    }
+
+    function renderServerStudyCard() {
+      if (!serverStudyCards.length) {
+        rebuildStudyQueue();
+        return;
+      }
+
+      const card = serverStudyCards[serverStudyIndex];
+      document.getElementById('server-card-number').textContent = serverStudyIndex + 1;
+      document.getElementById('server-total-cards').textContent = serverStudyCards.length;
+      document.getElementById('server-front-word').textContent = card.front;
+
+      const ex = card.examples || {};
+
+      document.getElementById('server-back-content').innerHTML = `
+        <div class="text-center mb-4">
+          <div class="text-xs uppercase tracking-widest text-violet-600 mb-1">${escapeHTML(getMeaningLabel())}</div>
+          <div class="native-text text-violet-700 text-xl">${escapeHTML(card.nativeMeaning)}</div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3 mb-4">
+          <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">📖 Meaning in English</div>
+          <div class="text-slate-700 text-[13px] leading-relaxed italic">${escapeHTML(card.meaning || 'Not available')}</div>
+          <div class="mt-2 text-[11px] text-slate-500">
+            ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3 mb-4">
+          <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
+          <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3 mb-4">
+          <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
+          <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">💡 Example Sentences</div>
+          <div class="space-y-2">
+            <div class="bg-green-50 rounded-xl p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="badge-easy">EASY</span>
+              </div>
+              <div class="text-slate-700 text-[13px] leading-relaxed">${highlightWord(ex.easy || '—', card.front)}</div>
+            </div>
+            <div class="bg-yellow-50 rounded-xl p-3">
+              <span class="badge-medium">MEDIUM</span>
+              <div class="text-slate-700 text-[13px] leading-relaxed mt-1">${highlightWord(ex.medium || '—', card.front)}</div>
+            </div>
+            <div class="bg-red-50 rounded-xl p-3">
+              <span class="badge-hard">HARD</span>
+              <div class="text-slate-700 text-[13px] leading-relaxed mt-1">${highlightWord(ex.hard || '—', card.front)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      serverIsFlipped = false;
+      document.getElementById('server-flashcard').classList.remove('flipped');
+      updateKnownCounts();
+    }
+
+    function serverFlipCard() {
+      serverIsFlipped = !serverIsFlipped;
+      document.getElementById('server-flashcard').classList.toggle('flipped', serverIsFlipped);
+    }
+
+    function rateServerCard(type, minutes) {
+      if (!serverStudyCards.length) return;
+
+      const card = serverStudyCards[serverStudyIndex];
+      const original = savedWords.find(s => s.front === card.front);
+      if (!original) return;
+
+      if (type === 'easy') original.easyStreak = (original.easyStreak || 0) + 1;
+      else original.easyStreak = 0;
+
+      if (original.easyStreak >= 3) {
+        original.permanentlyKnown = true;
+        original.due = Number.MAX_SAFE_INTEGER;
+        showToast(`🎉 "${original.front}" is permanently in You know Vocabulary!`);
+      } else {
+        original.permanentlyKnown = false;
+        original.due = Date.now() + minutes * 60 * 1000;
+      }
+
+      persistSavedWords();
+
+      const msg = type === 'again' ? "Again → 1 minute" :
+                  type === 'hard' ? "Hard → 10 minutes" :
+                  type === 'good' ? "Good → 1 day" :
+                  "Easy → 5 days";
+
+      showToast(`✅ Rated! Next review: ${msg}`);
+      showDesktopTipOnce();
+      rebuildStudyQueue();
+    }
+
+    function nextServerCard() {
+      // intentionally disabled for Study Now
+    }
+
+    function prevServerCard() {
+      // intentionally disabled for Study Now
+    }
+
+    function finishServerStudy() {
+      document.getElementById('server-study-screen').classList.add('hidden');
+      document.getElementById('input-screen').classList.remove('hidden');
+      showToast("🎉 Session Complete! Back to Passage → Vocabulary");
+    }
+
+    function restart() {
+      document.getElementById('study-screen').classList.add('hidden');
+      document.getElementById('input-screen').classList.remove('hidden');
+      document.getElementById('passage').value = '';
+      cards = [];
+    }
+
+    function clearInput() {
+      document.getElementById('passage').value = '';
+    }
+
+    document.addEventListener('keydown', e => {
+      const target = e.target;
+
+      if (!document.getElementById('server-study-screen').classList.contains('hidden')) {
+        if (shouldIgnoreShortcutTarget(target)) return;
+
+        if (!isDesktop()) {
+          if (e.key.toLowerCase() === 'f') serverFlipCard();
+          return;
+        }
+
+        const k = e.key.toLowerCase();
+        if (k === 'f') serverFlipCard();
+        if (k === 'a') { e.preventDefault(); rateServerCard('again', 1); }
+        if (k === 'h') { e.preventDefault(); rateServerCard('hard', 10); }
+        if (k === 'g') { e.preventDefault(); rateServerCard('good', 1440); }
+        if (k === 'e') { e.preventDefault(); rateServerCard('easy', 7200); }
+      } else if (!document.getElementById('study-screen').classList.contains('hidden')) {
+        if (shouldIgnoreShortcutTarget(target)) return;
+        if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); prevCard(); }
+        if (e.key.toLowerCase() === "f") flipCard();
+      }
+    });
+
+    window.onload = () => {
+      initLanguageGate();
+      updateServerCount();
+      updateKnownCounts();
+    };
+  </script>
+</body>
+</html>
