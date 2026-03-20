@@ -6,12 +6,12 @@
   <title>Passage → Anki (Bangla + Personal SRS Server)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
     .tail-container { font-family: 'Inter', system-ui, sans-serif; }
     .title-font { font-family: 'Space Grotesk', sans-serif; }
 
-    .flashcard { perspective: 1000px; height: 560px; }
+    .flashcard { perspective: 1000px; height: 620px; }
     .flashcard-inner {
       position: relative;
       width: 100%;
@@ -27,7 +27,7 @@
       width: 100%;
       height: 100%;
       backface-visibility: hidden;
-      border-radius: 20px;
+      border-radius: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -45,14 +45,78 @@
       transform: rotateY(180deg);
     }
 
-    .word-text { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.04em; }
-    .native-text { font-size: 1.7rem; line-height: 1.3; font-weight: 700; }
+    .word-text { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.04em; }
+    .native-text { font-size: 1.7rem; line-height: 1.35; font-weight: 700; }
 
     .mini-card {
-      background: rgba(255,255,255,0.78);
+      background: rgba(255,255,255,0.84);
       border: 1px solid rgba(148,163,184,0.35);
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 14px;
+    }
+
+    .native-card {
+      background: linear-gradient(135deg, #dcfce7, #dbeafe);
+      border: 1px solid rgba(16,185,129,.25);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .english-card {
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      border: 1px solid rgba(99,102,241,.18);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .pronunciation-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: 14px;
+      margin-top: 10px;
+    }
+
+    .pronounce-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 9999px;
+      background: #0f172a;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    .pronounce-btn:hover { transform: scale(1.04); }
+    .pronounce-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .accent-switch {
+      display: inline-flex;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .accent-pill {
+      border: none;
+      border-radius: 9999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: transparent;
+      color: #334155;
+    }
+    .accent-pill.active {
+      background: #111827;
+      color: white;
     }
 
     .word-chip {
@@ -74,7 +138,7 @@
     .badge-known { background:#ede9fe; color:#6d28d9; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
     .badge-permanent { background:#dbeafe; color:#1d4ed8; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
 
-    .edit-input {
+    .edit-input, .search-input {
       width: 100%;
       background: #020617;
       border: 1px solid #334155;
@@ -84,7 +148,7 @@
       outline: none;
       margin-top: 10px;
     }
-    .edit-input:focus { border-color: #10b981; }
+    .edit-input:focus, .search-input:focus { border-color: #10b981; }
 
     .desktop-tip {
       position: fixed;
@@ -114,7 +178,7 @@
   </style>
 </head>
 <body class="tail-container bg-slate-950 text-slate-200 min-h-screen">
-  <!-- LANGUAGE CHOOSER -->
+  <!-- LANGUAGE GATE -->
   <div id="language-gate" class="fixed inset-0 z-[10000] bg-slate-950 flex items-center justify-center p-4">
     <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
       <div class="p-8 border-b border-slate-800">
@@ -144,7 +208,7 @@
           Passage → Anki
         </h1>
         <p class="text-emerald-300 text-sm">
-          English • <span id="header-first-language">First Language</span> • Filters •
+          <span id="header-first-language">First Language</span> • English • Filters •
           <span class="text-amber-300">🗄️ Personal SRS Server</span>
         </p>
       </div>
@@ -160,7 +224,7 @@
       </div>
     </div>
 
-    <!-- INPUT AREA -->
+    <!-- INPUT -->
     <div id="input-screen" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
       <div class="mb-4">
         <label class="block text-slate-400 text-sm font-medium mb-2">Paste your English passage here</label>
@@ -172,7 +236,6 @@
           <input type="checkbox" id="filter-easy" checked class="w-6 h-6 accent-emerald-500 cursor-pointer">
           <label for="filter-easy" class="text-slate-300 text-base cursor-pointer select-none flex-1">❌ Filter out very easy words</label>
         </div>
-
         <div class="flex items-center gap-3 bg-slate-950 border border-slate-700 rounded-2xl p-5">
           <input type="checkbox" id="lemmatize" checked class="w-6 h-6 accent-emerald-500 cursor-pointer">
           <label for="lemmatize" class="text-slate-300 text-base cursor-pointer select-none flex-1">Use base forms (finding → find)</label>
@@ -214,7 +277,7 @@
         <div id="flashcard-inner" class="flashcard-inner">
           <div id="front" class="flashcard-front">
             <div class="text-center">
-              <div class="text-emerald-400 text-sm font-medium tracking-[2px] mb-3">ENGLISH (BASE FORM)</div>
+              <div class="text-emerald-400 text-sm font-medium tracking-[2px] mb-3">ENGLISH WORD</div>
               <div id="front-word" class="word-text text-white">find</div>
               <div class="text-slate-400 text-xs mt-8">Tap to flip →</div>
             </div>
@@ -236,7 +299,7 @@
       <div onclick="restart()" class="text-center text-slate-400 hover:text-slate-300 cursor-pointer text-sm mt-8 underline">Start over</div>
     </div>
 
-    <!-- ALL CARDS MODAL -->
+    <!-- ALL CARDS -->
     <div id="all-cards-modal" onclick="if(event.target.id==='all-cards-modal') hideAllCards()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div onclick="event.stopImmediatePropagation()" class="bg-slate-900 w-full max-w-2xl mx-4 rounded-3xl max-h-[85vh] overflow-hidden">
         <div class="p-6 border-b border-slate-700 flex items-center justify-between">
@@ -250,7 +313,7 @@
       </div>
     </div>
 
-    <!-- SERVER MODAL -->
+    <!-- SERVER -->
     <div id="server-modal" onclick="if(event.target.id==='server-modal') hideServerModal()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div onclick="event.stopImmediatePropagation()" class="bg-slate-900 w-full max-w-2xl mx-4 rounded-3xl max-h-[85vh] overflow-hidden">
         <div class="p-6 border-b border-slate-700 flex items-center justify-between">
@@ -263,6 +326,17 @@
             <button onclick="hideServerModal()" class="text-3xl text-slate-400">×</button>
           </div>
         </div>
+
+        <div class="px-6 pt-4 pb-2 bg-slate-800 border-b border-slate-700">
+          <input
+            id="server-search"
+            type="text"
+            class="search-input mt-0"
+            placeholder="Search saved vocabulary..."
+            oninput="renderServerList()"
+          />
+        </div>
+
         <div class="px-6 py-4 bg-slate-800 border-b border-slate-700">
           <button onclick="startServerStudy()"
             class="w-full py-5 bg-violet-600 hover:bg-violet-500 transition rounded-3xl font-semibold text-xl flex items-center justify-center gap-3 shadow-inner">
@@ -273,7 +347,7 @@
       </div>
     </div>
 
-    <!-- KNOW VOCABULARY MODAL -->
+    <!-- KNOWN -->
     <div id="known-modal" onclick="if(event.target.id==='known-modal') hideKnownModal()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div onclick="event.stopImmediatePropagation()" class="bg-slate-900 w-full max-w-2xl mx-4 rounded-3xl max-h-[85vh] overflow-hidden">
         <div class="p-6 border-b border-slate-700 flex items-center justify-between">
@@ -286,7 +360,7 @@
       </div>
     </div>
 
-    <!-- DESKTOP SHORTCUT TIP -->
+    <!-- SHORTCUT TIP -->
     <div id="desktop-shortcut-tip" class="hidden desktop-tip">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -300,7 +374,7 @@
       </div>
     </div>
 
-    <!-- SERVER STUDY -->
+    <!-- STUDY NOW -->
     <div id="server-study-screen" class="hidden">
       <div class="flex justify-between items-center mb-6 px-2">
         <div class="flex items-center gap-3">
@@ -374,31 +448,31 @@
       { code: "ar", name: "Arabic", native: "العربية", label: "المعنى", aliases: ["arabic", "العربية"] },
       { code: "tr", name: "Turkish", native: "Türkçe", label: "Türkçe anlam", aliases: ["turkish", "türkçe"] },
       { code: "fa", name: "Persian", native: "فارسی", label: "معنی", aliases: ["persian", "farsi", "فارسی"] },
-      { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian", "bahasa indonesia"] },
-      { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay", "bahasa melayu"] },
-      { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai", "ไทย"] },
-      { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese", "tiếng việt"] },
-      { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin", "中文"] },
-      { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese", "日本語"] },
-      { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean", "한국어"] },
-      { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian", "русский"] },
-      { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian", "українська"] },
-      { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish", "polski"] },
-      { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german", "deutsch"] },
-      { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french", "français"] },
-      { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish", "español"] },
-      { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese", "português"] },
-      { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian", "italiano"] },
-      { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch", "nederlands"] },
-      { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish", "svenska"] },
-      { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian", "norsk"] },
-      { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish", "dansk"] },
-      { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish", "suomi"] },
-      { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek", "ελληνικά"] },
-      { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian", "română"] },
-      { code: "hu", name: "Hungarian", native: "Magyar", label: "Jelentés", aliases: ["hungarian", "magyar"] },
-      { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech", "čeština"] },
-      { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew", "עברית"] },
+      { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian"] },
+      { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay"] },
+      { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai"] },
+      { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese"] },
+      { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin"] },
+      { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese"] },
+      { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean"] },
+      { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian"] },
+      { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian"] },
+      { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish"] },
+      { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german"] },
+      { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french"] },
+      { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish"] },
+      { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese"] },
+      { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian"] },
+      { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch"] },
+      { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish"] },
+      { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian"] },
+      { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish"] },
+      { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish"] },
+      { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek"] },
+      { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian"] },
+      { code: "hu", name: "Hungarian", native: "Magyar", label: "Jelentés", aliases: ["hungarian"] },
+      { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech"] },
+      { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew"] },
       { code: "tl", name: "Filipino", native: "Filipino", label: "Kahulugan", aliases: ["filipino", "tagalog"] }
     ];
 
@@ -419,6 +493,10 @@
       easyStreak: 0,
       permanentlyKnown: false,
       editingMeaning: false,
+      accent: w.accent || 'us',
+      pronunciationText: w.pronunciationText || '',
+      pronunciationAudioUS: w.pronunciationAudioUS || '',
+      pronunciationAudioUK: w.pronunciationAudioUK || '',
       ...w
     }));
     localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
@@ -426,6 +504,104 @@
     const commonEasyWords = new Set([
       "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
     ]);
+
+    // Safe no-op fallbacks so commenting the marked pronunciation block will not break the app.
+    let pronunciationAudio = null;
+    function extractPronunciationData() {
+      return {
+        pronunciationText: "",
+        pronunciationAudioUS: "",
+        pronunciationAudioUK: ""
+      };
+    }
+    async function playWordPronunciation() {}
+    function stopWordPronunciation() {
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch {}
+      try {
+        if (pronunciationAudio) {
+          pronunciationAudio.pause();
+          pronunciationAudio.currentTime = 0;
+        }
+      } catch {}
+    }
+
+    /* =========================
+       PRONUNCIATION FEATURE START
+       You can comment this whole block if you want.
+       ========================= */
+    function buildMerriamAudioURL(audioFile) {
+      if (!audioFile) return "";
+      let subdirectory = audioFile[0];
+      if (/^bix/.test(audioFile)) subdirectory = "bix";
+      else if (/^gg/.test(audioFile)) subdirectory = "gg";
+      else if (/^[0-9]|^_/.test(audioFile)) subdirectory = "number";
+      return `https://media.merriam-webster.com/audio/prons/en/us/mp3/${subdirectory}/${audioFile}.mp3`;
+    }
+
+    function extractPronunciationData(freeData, merriamData) {
+      const result = {
+        pronunciationText: "",
+        pronunciationAudioUS: "",
+        pronunciationAudioUK: ""
+      };
+
+      if (freeData?.entries?.length) {
+        for (const entry of freeData.entries) {
+          if (Array.isArray(entry.pronunciations)) {
+            const found = entry.pronunciations.find(p => p?.text);
+            if (found?.text && !result.pronunciationText) {
+              result.pronunciationText = String(found.text).trim();
+            }
+          }
+        }
+      }
+
+      if (merriamData && Array.isArray(merriamData) && merriamData.length && typeof merriamData[0] !== "string") {
+        const entry = merriamData.find(item => item?.hwi?.prs?.length) || merriamData[0];
+        const prs = entry?.hwi?.prs || [];
+        const firstText = prs.find(p => p?.mw)?.mw;
+        if (firstText && !result.pronunciationText) {
+          result.pronunciationText = `/${String(firstText).trim()}/`;
+        }
+
+        const usAudio = prs.find(p => p?.sound?.audio)?.sound?.audio;
+        if (usAudio) result.pronunciationAudioUS = buildMerriamAudioURL(usAudio);
+
+        const ukAudio = prs.find(p => {
+          const labels = Array.isArray(p?.l) ? p.l.join(" ").toLowerCase() : "";
+          return labels.includes("british");
+        })?.sound?.audio;
+
+        if (ukAudio) result.pronunciationAudioUK = buildMerriamAudioURL(ukAudio);
+      }
+
+      return result;
+    }
+
+    async function playWordPronunciation(word, accent = 'us', pronunciationAudioUS = "", pronunciationAudioUK = "") {
+      stopWordPronunciation();
+
+      const pickedAudio = accent === 'uk' ? (pronunciationAudioUK || pronunciationAudioUS) : (pronunciationAudioUS || pronunciationAudioUK);
+
+      if (pickedAudio) {
+        pronunciationAudio = new Audio(pickedAudio);
+        pronunciationAudio.play().catch(() => {});
+        return;
+      }
+
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(word);
+        utter.lang = accent === 'uk' ? 'en-GB' : 'en-US';
+        utter.rate = 0.92;
+        utter.pitch = 1;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+    /* =======================
+       PRONUNCIATION FEATURE END
+       ======================= */
 
     function getUserLanguage() {
       const code = localStorage.getItem(USER_LANGUAGE_KEY);
@@ -443,9 +619,7 @@
     function applyUserLanguageToUI() {
       currentUserLanguage = getUserLanguage();
       const header = document.getElementById('header-first-language');
-      if (header && currentUserLanguage) {
-        header.textContent = currentUserLanguage.native;
-      }
+      if (header && currentUserLanguage) header.textContent = currentUserLanguage.native;
     }
 
     function getMeaningLabel() {
@@ -476,12 +650,7 @@
       container.innerHTML = '';
 
       const filtered = LANGUAGE_OPTIONS.filter(lang => {
-        const hay = [
-          lang.code,
-          lang.name,
-          lang.native,
-          ...(lang.aliases || [])
-        ].join(' ').toLowerCase();
+        const hay = [lang.code, lang.name, lang.native, ...(lang.aliases || [])].join(' ').toLowerCase();
         return !q || hay.includes(q);
       });
 
@@ -557,9 +726,7 @@
     }
 
     function escapeHTML(str) {
-      return String(str).replace(/[&<>"']/g, function(m) {
-        return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m];
-      });
+      return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m]);
     }
 
     function highlightWord(text, word) {
@@ -620,14 +787,6 @@
         compare: "to examine similarities and differences"
       };
       if (simpleMap[w]) return simpleMap[w];
-      if (w.endsWith('tion') || w.endsWith('sion')) return "the act, process, or result of something";
-      if (w.endsWith('ment')) return "a result, condition, or process";
-      if (w.endsWith('ness')) return "the state or quality of something";
-      if (w.endsWith('ity')) return "a state, condition, or quality";
-      if (w.endsWith('ly')) return "in a particular way";
-      if (w.endsWith('ous')) return "having a particular quality";
-      if (w.endsWith('able') || w.endsWith('ible')) return "can be done or used in that way";
-      if (w.endsWith('ize') || w.endsWith('ise')) return "to make something become a certain way";
       return `easy English meaning not available yet for "${w}"`;
     }
 
@@ -679,39 +838,45 @@
       return list.map(w => `<span class="word-chip ${type}">${escapeHTML(w)}</span>`).join('');
     }
 
-    async function fetchMerriamData(word) {
+    async function fetchMerriamRaw(word) {
       if (!MERRIAM_API_KEY) return null;
       try {
         const url = `${MERRIAM_ENDPOINT}${encodeURIComponent(word)}?key=${encodeURIComponent(MERRIAM_API_KEY)}`;
         const r = await fetch(url);
         if (!r.ok) return null;
-        const data = await r.json();
-        if (!Array.isArray(data) || !data.length || typeof data[0] === "string") return null;
+        return await r.json();
+      } catch {
+        return null;
+      }
+    }
 
-        const entry = data.find(item => item && typeof item === "object" && Array.isArray(item.shortdef)) || data[0];
-        if (!entry || typeof entry !== "object") return null;
+    async function fetchMerriamData(word) {
+      const data = await fetchMerriamRaw(word);
+      if (!Array.isArray(data) || !data.length || typeof data[0] === "string") return { raw: data, parsed: null };
 
-        const shortdef = Array.isArray(entry.shortdef) ? entry.shortdef : [];
-        const meaning = normalizeDefinition(shortdef[0] || "");
-        const partOfSpeech = entry.fl || "";
+      const entry = data.find(item => item && typeof item === "object" && Array.isArray(item.shortdef)) || data[0];
+      if (!entry || typeof entry !== "object") return { raw: data, parsed: null };
 
-        let examples = [];
-        let synonyms = [];
-        let antonyms = [];
+      const shortdef = Array.isArray(entry.shortdef) ? entry.shortdef : [];
+      const meaning = normalizeDefinition(shortdef[0] || "");
+      const partOfSpeech = entry.fl || "";
 
-        if (Array.isArray(entry.def)) {
-          for (const defBlock of entry.def) {
-            if (defBlock && Array.isArray(defBlock.sseq)) {
-              for (const sseqItem of defBlock.sseq) {
-                if (Array.isArray(sseqItem)) {
-                  for (const senseWrap of sseqItem) {
-                    if (Array.isArray(senseWrap) && senseWrap[0] === "sense" && senseWrap[1]?.dt) {
-                      for (const dtItem of senseWrap[1].dt) {
-                        if (Array.isArray(dtItem) && dtItem[0] === "vis" && Array.isArray(dtItem[1])) {
-                          dtItem[1].forEach(v => {
-                            if (v?.t) examples.push(String(v.t).replace(/\{it\}|\{\/it\}/g, ""));
-                          });
-                        }
+      let examples = [];
+      let synonyms = [];
+      let antonyms = [];
+
+      if (Array.isArray(entry.def)) {
+        for (const defBlock of entry.def) {
+          if (defBlock && Array.isArray(defBlock.sseq)) {
+            for (const sseqItem of defBlock.sseq) {
+              if (Array.isArray(sseqItem)) {
+                for (const senseWrap of sseqItem) {
+                  if (Array.isArray(senseWrap) && senseWrap[0] === "sense" && senseWrap[1]?.dt) {
+                    for (const dtItem of senseWrap[1].dt) {
+                      if (Array.isArray(dtItem) && dtItem[0] === "vis" && Array.isArray(dtItem[1])) {
+                        dtItem[1].forEach(v => {
+                          if (v?.t) examples.push(String(v.t).replace(/\{it\}|\{\/it\}/g, ""));
+                        });
                       }
                     }
                   }
@@ -720,54 +885,81 @@
             }
           }
         }
+      }
 
-        if (Array.isArray(entry.meta?.syns)) entry.meta.syns.forEach(group => { if (Array.isArray(group)) synonyms.push(...group); });
-        if (Array.isArray(entry.meta?.ants)) entry.meta.ants.forEach(group => { if (Array.isArray(group)) antonyms.push(...group); });
+      if (Array.isArray(entry.meta?.syns)) entry.meta.syns.forEach(group => { if (Array.isArray(group)) synonyms.push(...group); });
+      if (Array.isArray(entry.meta?.ants)) entry.meta.ants.forEach(group => { if (Array.isArray(group)) antonyms.push(...group); });
 
-        return {
+      return {
+        raw: data,
+        parsed: {
           meaning: meaning || "",
           partOfSpeech,
           examples: dedupeStrings(examples),
           synonyms: dedupeStrings(synonyms),
           antonyms: dedupeStrings(antonyms),
           nativeMeaning: ""
-        };
+        }
+      };
+    }
+
+    async function fetchFreeDictionaryRaw(word) {
+      try {
+        const url = `${FREE_DICT_ENDPOINT}en/${encodeURIComponent(word)}?translations=true`;
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        return await r.json();
       } catch {
         return null;
       }
     }
 
     async function fetchFreeDictionaryData(word) {
-      try {
-        const url = `${FREE_DICT_ENDPOINT}en/${encodeURIComponent(word)}?translations=true`;
-        const r = await fetch(url);
-        if (!r.ok) return null;
+      const data = await fetchFreeDictionaryRaw(word);
+      const entries = Array.isArray(data?.entries) ? data.entries : [];
+      if (!entries.length) return { raw: data, parsed: null };
 
-        const data = await r.json();
-        const entries = Array.isArray(data?.entries) ? data.entries : [];
-        if (!entries.length) return null;
+      let meaning = "";
+      let partOfSpeech = "";
+      let examples = [];
+      let nativeTranslations = [];
+      let synonyms = [];
+      let antonyms = [];
 
-        let meaning = "";
-        let partOfSpeech = "";
-        let examples = [];
-        let synonyms = [];
-        let antonyms = [];
-        let nativeTranslations = [];
+      for (const entry of entries) {
+        if (!partOfSpeech && entry?.partOfSpeech) partOfSpeech = entry.partOfSpeech;
+        if (Array.isArray(entry?.synonyms)) synonyms.push(...entry.synonyms.map(String));
+        if (Array.isArray(entry?.antonyms)) antonyms.push(...entry.antonyms.map(String));
 
-        for (const entry of entries) {
-          if (!partOfSpeech && entry?.partOfSpeech) partOfSpeech = entry.partOfSpeech;
-          if (Array.isArray(entry?.synonyms)) synonyms.push(...entry.synonyms.map(String));
-          if (Array.isArray(entry?.antonyms)) antonyms.push(...entry.antonyms.map(String));
+        const senses = Array.isArray(entry?.senses) ? entry.senses : [];
+        for (const sense of senses) {
+          if (!meaning && sense?.definition) meaning = normalizeDefinition(sense.definition);
+          if (Array.isArray(sense?.examples)) examples.push(...sense.examples.map(String));
+          if (Array.isArray(sense?.synonyms)) synonyms.push(...sense.synonyms.map(String));
+          if (Array.isArray(sense?.antonyms)) antonyms.push(...sense.antonyms.map(String));
 
-          const senses = Array.isArray(entry?.senses) ? entry.senses : [];
-          for (const sense of senses) {
-            if (!meaning && sense?.definition) meaning = normalizeDefinition(sense.definition);
-            if (Array.isArray(sense?.examples)) examples.push(...sense.examples.map(String));
-            if (Array.isArray(sense?.synonyms)) synonyms.push(...sense.synonyms.map(String));
-            if (Array.isArray(sense?.antonyms)) antonyms.push(...sense.antonyms.map(String));
+          if (Array.isArray(sense?.translations)) {
+            sense.translations.forEach(tr => {
+              const code = String(tr?.language?.code || "").toLowerCase();
+              const name = String(tr?.language?.name || "").toLowerCase();
+              const w = String(tr?.word || "").trim();
+              const userCode = currentUserLanguage?.code?.toLowerCase();
+              const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
+              if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
+                nativeTranslations.push(w);
+              }
+            });
+          }
 
-            if (Array.isArray(sense?.translations)) {
-              sense.translations.forEach(tr => {
+          const subsenses = Array.isArray(sense?.subsenses) ? sense.subsenses : [];
+          for (const sub of subsenses) {
+            if (!meaning && sub?.definition) meaning = normalizeDefinition(sub.definition);
+            if (Array.isArray(sub?.examples)) examples.push(...sub.examples.map(String));
+            if (Array.isArray(sub?.synonyms)) synonyms.push(...sub.synonyms.map(String));
+            if (Array.isArray(sub?.antonyms)) antonyms.push(...sub.antonyms.map(String));
+
+            if (Array.isArray(sub?.translations)) {
+              sub.translations.forEach(tr => {
                 const code = String(tr?.language?.code || "").toLowerCase();
                 const name = String(tr?.language?.name || "").toLowerCase();
                 const w = String(tr?.word || "").trim();
@@ -778,41 +970,21 @@
                 }
               });
             }
-
-            const subsenses = Array.isArray(sense?.subsenses) ? sense.subsenses : [];
-            for (const sub of subsenses) {
-              if (!meaning && sub?.definition) meaning = normalizeDefinition(sub.definition);
-              if (Array.isArray(sub?.examples)) examples.push(...sub.examples.map(String));
-              if (Array.isArray(sub?.synonyms)) synonyms.push(...sub.synonyms.map(String));
-              if (Array.isArray(sub?.antonyms)) antonyms.push(...sub.antonyms.map(String));
-
-              if (Array.isArray(sub?.translations)) {
-                sub.translations.forEach(tr => {
-                  const code = String(tr?.language?.code || "").toLowerCase();
-                  const name = String(tr?.language?.name || "").toLowerCase();
-                  const w = String(tr?.word || "").trim();
-                  const userCode = currentUserLanguage?.code?.toLowerCase();
-                  const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
-                  if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
-                    nativeTranslations.push(w);
-                  }
-                });
-              }
-            }
           }
         }
+      }
 
-        return {
+      return {
+        raw: data,
+        parsed: {
           meaning: meaning || "",
           partOfSpeech,
           examples: dedupeStrings(examples),
           synonyms: dedupeStrings(synonyms),
           antonyms: dedupeStrings(antonyms),
           nativeMeaning: dedupeStrings(nativeTranslations)[0] || ""
-        };
-      } catch {
-        return null;
-      }
+        }
+      };
     }
 
     async function fetchNativeMeaningFallback(word) {
@@ -829,15 +1001,13 @@
     }
 
     async function getDictionaryData(word) {
-      let primary = null;
-      let secondary = null;
+      const [freeResult, merriamResult] = await Promise.all([
+        fetchFreeDictionaryData(word),
+        fetchMerriamData(word)
+      ]);
 
-      if (MERRIAM_API_KEY) {
-        primary = await fetchMerriamData(word);
-        secondary = await fetchFreeDictionaryData(word);
-      } else {
-        primary = await fetchFreeDictionaryData(word);
-      }
+      const primary = freeResult?.parsed || null;
+      const secondary = merriamResult?.parsed || null;
 
       const merged = {
         meaning: primary?.meaning || secondary?.meaning || "",
@@ -852,7 +1022,12 @@
       if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
       if (!merged.meaning) merged.meaning = makeEasyMeaningFallback(word);
 
-      return merged;
+      const pronunciation = extractPronunciationData(freeResult?.raw, merriamResult?.raw);
+
+      return {
+        ...merged,
+        ...pronunciation
+      };
     }
 
     function chooseBestApiExamples(apiExamples) {
@@ -923,7 +1098,11 @@
           partOfSpeech: dictData.partOfSpeech,
           synonyms: dictData.synonyms,
           antonyms: dictData.antonyms,
-          examples
+          examples,
+          accent: 'us',
+          pronunciationText: dictData.pronunciationText || '',
+          pronunciationAudioUS: dictData.pronunciationAudioUS || '',
+          pronunciationAudioUK: dictData.pronunciationAudioUK || ''
         });
       }
 
@@ -940,6 +1119,31 @@
       updateKnownCounts();
     }
 
+    function pronunciationRowHTML(card, sourceType, idx) {
+      const accent = card.accent || 'us';
+      const accentName = accent === 'uk' ? 'UK' : 'US';
+      return `
+        <div class="pronunciation-bar">
+          <div class="flex-1 min-w-0">
+            <div class="text-[11px] uppercase tracking-widest text-slate-500 mb-1">Pronunciation</div>
+            <div class="text-slate-700 text-sm font-medium truncate">${escapeHTML(card.pronunciationText || 'Listen to hear pronunciation')}</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="accent-switch">
+              <button class="accent-pill ${accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('${sourceType}', ${idx}, 'us')">US</button>
+              <button class="accent-pill ${accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('${sourceType}', ${idx}, 'uk')">UK</button>
+            </div>
+            <button
+              class="pronounce-btn"
+              onclick="event.stopPropagation(); triggerPronunciation('${sourceType}', ${idx})"
+              title="Play ${accentName} pronunciation"
+              aria-label="Play pronunciation"
+            >🔊</button>
+          </div>
+        </div>
+      `;
+    }
+
     function renderCurrentCard() {
       const card = cards[currentIndex];
       document.getElementById('card-number').textContent = currentIndex + 1;
@@ -947,17 +1151,18 @@
       document.getElementById('front-word').textContent = card.front;
 
       document.getElementById('back-content').innerHTML = `
-        <div class="text-center mb-4">
-          <div class="text-xs uppercase tracking-widest text-emerald-600 mb-2">${escapeHTML(getMeaningLabel())}</div>
-          <div class="native-text text-emerald-700">${escapeHTML(card.nativeMeaning)}</div>
+        <div class="native-card mb-3">
+          <div class="text-xs uppercase tracking-widest text-emerald-700 mb-2">${escapeHTML(getMeaningLabel())}</div>
+          <div class="native-text text-emerald-900">${escapeHTML(card.nativeMeaning)}</div>
         </div>
 
-        <div class="mini-card mb-3">
-          <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">📖 Meaning in English</div>
-          <div class="text-slate-700 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Meaning not available')}</div>
+        <div class="english-card mb-3">
+          <div class="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2">📖 Meaning in English</div>
+          <div class="text-slate-800 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Meaning not available')}</div>
           <div class="mt-2 text-[11px] text-slate-500">
             ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
           </div>
+          ${pronunciationRowHTML(card, 'passage', currentIndex)}
         </div>
 
         <div class="mini-card mb-3">
@@ -997,7 +1202,56 @@
       renderCurrentCard();
     }
 
-    function markEasy() { nextCard(); }
+    function markEasy() {
+      nextCard();
+    }
+
+    function setAccent(sourceType, index, accent) {
+      if (sourceType === 'passage') {
+        cards[index].accent = accent;
+        if (index === currentIndex && !document.getElementById('study-screen').classList.contains('hidden')) renderCurrentCard();
+        return;
+      }
+
+      if (sourceType === 'server') {
+        savedWords[index].accent = accent;
+        persistSavedWords();
+        renderServerList();
+        return;
+      }
+
+      if (sourceType === 'studyNow') {
+        const card = serverStudyCards[index];
+        if (!card) return;
+        card.accent = accent;
+        const original = savedWords.find(s => s.front === card.front);
+        if (original) original.accent = accent;
+        persistSavedWords();
+        renderServerStudyCard();
+      }
+    }
+
+    function triggerPronunciation(sourceType, index) {
+      if (sourceType === 'passage') {
+        const card = cards[index];
+        if (!card) return;
+        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+        return;
+      }
+
+      if (sourceType === 'server') {
+        const card = savedWords[index];
+        if (!card) return;
+        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+        return;
+      }
+
+      if (sourceType === 'studyNow') {
+        const card = serverStudyCards[index];
+        if (!card) return;
+        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+      }
+    }
 
     function pushToServer() {
       const card = cards[currentIndex];
@@ -1017,7 +1271,11 @@
         permanentlyKnown: false,
         date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
         due: Date.now(),
-        interval: 0
+        interval: 0,
+        accent: card.accent || 'us',
+        pronunciationText: card.pronunciationText || '',
+        pronunciationAudioUS: card.pronunciationAudioUS || '',
+        pronunciationAudioUK: card.pronunciationAudioUK || ''
       });
 
       persistSavedWords();
@@ -1042,7 +1300,11 @@
             permanentlyKnown: false,
             date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
             due: Date.now(),
-            interval: 0
+            interval: 0,
+            accent: card.accent || 'us',
+            pronunciationText: card.pronunciationText || '',
+            pronunciationAudioUS: card.pronunciationAudioUS || '',
+            pronunciationAudioUK: card.pronunciationAudioUK || ''
           });
           added++;
         }
@@ -1109,7 +1371,7 @@
 
     function exportServerCSV() {
       if (!savedWords.length) return alert("Nothing to export!");
-      let csv = `English\t${getMeaningLabel()}\tMeaning in English\tPart Of Speech\tSynonyms\tAntonyms\tContext\tEasy Example\tMedium Example\tHard Example\tDue\tEasy Streak\tPermanent Known\tDate\n`;
+      let csv = `English\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\tEasy Example\tMedium Example\tHard Example\tDue\tEasy Streak\tPermanent Known\tDate\n`;
 
       savedWords.forEach(item => {
         const safeBack = (item.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
@@ -1118,7 +1380,7 @@
         const safeAntonyms = (item.antonyms || []).join(', ').replace(/\t/g, ' ');
         const dueText = item.permanentlyKnown ? 'Permanent' : new Date(item.due || Date.now()).toLocaleString();
         const ex = item.examples || {};
-        csv += `"${item.front}"\t"${item.nativeMeaning}"\t"${safeMeaning}"\t"${item.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\t"${(ex.easy || '').replace(/\t/g,' ')}"\t"${(ex.medium || '').replace(/\t/g,' ')}"\t"${(ex.hard || '').replace(/\t/g,' ')}"\t"${dueText}"\t"${item.easyStreak || 0}"\t"${item.permanentlyKnown ? 'Yes' : 'No'}"\t"${item.date || ''}"\n`;
+        csv += `"${item.front}"\t"${item.nativeMeaning}"\t"${safeMeaning}"\t"${item.pronunciationText || ''}"\t"${item.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\t"${(ex.easy || '').replace(/\t/g,' ')}"\t"${(ex.medium || '').replace(/\t/g,' ')}"\t"${(ex.hard || '').replace(/\t/g,' ')}"\t"${dueText}"\t"${item.easyStreak || 0}"\t"${item.permanentlyKnown ? 'Yes' : 'No'}"\t"${item.date || ''}"\n`;
       });
 
       const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
@@ -1129,13 +1391,13 @@
     }
 
     function downloadForAnki() {
-      let csv = `English (Base Form)\t${getMeaningLabel()}\tMeaning in English\tPart Of Speech\tSynonyms\tAntonyms\tContext\n`;
+      let csv = `English (Base Form)\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\n`;
       cards.forEach(card => {
         const safeBack = (card.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
         const safeMeaning = (card.meaning || '').replace(/\t/g, ' ');
         const safeSynonyms = (card.synonyms || []).join(', ').replace(/\t/g, ' ');
         const safeAntonyms = (card.antonyms || []).join(', ').replace(/\t/g, ' ');
-        csv += `"${card.front}"\t"${card.nativeMeaning}"\t"${safeMeaning}"\t"${card.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\n`;
+        csv += `"${card.front}"\t"${card.nativeMeaning}"\t"${safeMeaning}"\t"${card.pronunciationText || ''}"\t"${card.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
@@ -1155,8 +1417,18 @@
           <div class="flex gap-4 items-start">
             <div class="font-mono text-emerald-400 text-xl font-bold">${i+1}</div>
             <div class="flex-1">
-              <div class="font-semibold text-lg">${escapeHTML(card.front)}</div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="font-semibold text-lg">${escapeHTML(card.front)}</div>
+                <div class="flex items-center gap-2">
+                  <div class="accent-switch">
+                    <button class="accent-pill ${card.accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('passage', ${i}, 'us')">US</button>
+                    <button class="accent-pill ${card.accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('passage', ${i}, 'uk')">UK</button>
+                  </div>
+                  <button class="pronounce-btn !w-9 !h-9" onclick="event.stopPropagation(); triggerPronunciation('passage', ${i})">🔊</button>
+                </div>
+              </div>
               <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(card.nativeMeaning)}</div>
+              <div class="text-slate-400 text-xs mt-1">${escapeHTML(card.pronunciationText || '')}</div>
               <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML((card.meaning || '').substring(0,90))}${(card.meaning || '').length > 90 ? '...' : ''}</div>
               <div class="text-slate-400 text-xs mt-2">${escapeHTML(card.partOfSpeech || '')}</div>
               <div class="mt-3">
@@ -1185,12 +1457,38 @@
       document.getElementById('all-cards-modal').classList.add('hidden');
     }
 
-    function openServerModal() {
-      const container = document.getElementById('server-list');
-      container.innerHTML = savedWords.length ? '' : `<div class="text-center py-12 text-slate-400">Your server is empty.<br>Push some words!</div>`;
+    function getServerSearchQuery() {
+      return (document.getElementById('server-search')?.value || '').trim().toLowerCase();
+    }
 
-      savedWords.forEach((item, i) => {
-        const editing = !!item.editingMeaning;
+    function renderServerList() {
+      const container = document.getElementById('server-list');
+      const q = getServerSearchQuery();
+      container.innerHTML = '';
+
+      let list = savedWords;
+      if (q) {
+        list = savedWords.filter(item => {
+          const hay = [
+            item.front,
+            item.nativeMeaning,
+            item.meaning,
+            item.pronunciationText,
+            ...(item.synonyms || []),
+            ...(item.antonyms || [])
+          ].join(' ').toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      if (!list.length) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-400">${q ? 'No matching vocabulary found.' : 'Your server is empty.<br>Push some words!'}</div>`;
+        return;
+      }
+
+      list.forEach(item => {
+        const realIndex = savedWords.findIndex(w => w.front === item.front);
+        const editing = !!savedWords[realIndex].editingMeaning;
         const dueInfo = item.permanentlyKnown
           ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
           : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
@@ -1199,10 +1497,18 @@
         div.className = 'bg-slate-800 rounded-2xl p-5 flex gap-4';
         div.innerHTML = `
           <div class="flex-1">
-            <div class="flex justify-between">
+            <div class="flex justify-between items-start gap-3">
               <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
-              <div class="text-amber-400 text-xs">${escapeHTML(item.date || '')}</div>
+              <div class="flex items-center gap-2">
+                <div class="accent-switch">
+                  <button class="accent-pill ${item.accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('server', ${realIndex}, 'us')">US</button>
+                  <button class="accent-pill ${item.accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('server', ${realIndex}, 'uk')">UK</button>
+                </div>
+                <button class="pronounce-btn !w-9 !h-9" onclick="event.stopPropagation(); triggerPronunciation('server', ${realIndex})">🔊</button>
+              </div>
             </div>
+
+            <div class="text-slate-400 text-xs mt-1">${escapeHTML(item.pronunciationText || '')}</div>
 
             <div class="mt-2 flex items-center gap-2 flex-wrap">
               ${dueInfo}
@@ -1213,24 +1519,24 @@
 
               ${editing ? `
                 <input
-                  id="edit-native-${i}"
+                  id="edit-native-${realIndex}"
                   class="edit-input"
                   type="text"
                   value="${escapeHTML(item.nativeMeaning)}"
                   onclick="event.stopPropagation()"
                 />
                 <div class="flex justify-end gap-2 mt-2">
-                  <button onclick="saveMeaningEdit(${i});event.stopPropagation()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">
+                  <button onclick="saveMeaningEdit(${realIndex});event.stopPropagation()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">
                     Save
                   </button>
-                  <button onclick="cancelMeaningEdit(${i});event.stopPropagation()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2 rounded-xl">
+                  <button onclick="cancelMeaningEdit(${realIndex});event.stopPropagation()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2 rounded-xl">
                     Cancel
                   </button>
                 </div>
               ` : `
                 <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(item.nativeMeaning)}</div>
                 <div class="flex justify-end mt-2">
-                  <button onclick="toggleMeaningEdit(${i});event.stopPropagation()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl">
+                  <button onclick="toggleMeaningEdit(${realIndex});event.stopPropagation()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl">
                     Edit Meaning
                   </button>
                 </div>
@@ -1251,20 +1557,24 @@
             </div>
           </div>
 
-          <button onclick="deleteFromServer(${i});event.stopImmediatePropagation()" class="text-red-400 hover:text-red-500 text-2xl self-start">×</button>
+          <button onclick="deleteFromServer(${realIndex});event.stopImmediatePropagation()" class="text-red-400 hover:text-red-500 text-2xl self-start">×</button>
         `;
         container.appendChild(div);
       });
+    }
 
+    function openServerModal() {
       document.getElementById('server-modal').classList.remove('hidden');
       updateServerCount();
       updateKnownCounts();
+      renderServerList();
     }
 
     function deleteFromServer(i) {
       savedWords.splice(i, 1);
       persistSavedWords();
-      openServerModal();
+      renderServerList();
+      updateKnownCounts();
     }
 
     function hideServerModal() {
@@ -1299,6 +1609,7 @@
                     <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
                     ${dueInfo}
                   </div>
+                  <div class="text-slate-400 text-xs mt-1">${escapeHTML(item.pronunciationText || '')}</div>
                   <div class="native-text text-emerald-400 text-lg mt-2">${escapeHTML(item.nativeMeaning)}</div>
                   <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML(item.meaning || '')}</div>
                 </div>
@@ -1383,36 +1694,35 @@
       const ex = card.examples || {};
 
       document.getElementById('server-back-content').innerHTML = `
-        <div class="text-center mb-4">
-          <div class="text-xs uppercase tracking-widest text-violet-600 mb-1">${escapeHTML(getMeaningLabel())}</div>
-          <div class="native-text text-violet-700 text-xl">${escapeHTML(card.nativeMeaning)}</div>
+        <div class="native-card mb-3">
+          <div class="text-xs uppercase tracking-widest text-violet-700 mb-2">${escapeHTML(getMeaningLabel())}</div>
+          <div class="native-text text-violet-900">${escapeHTML(card.nativeMeaning)}</div>
         </div>
 
-        <div class="border-t border-slate-200 pt-3 mb-4">
-          <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">📖 Meaning in English</div>
-          <div class="text-slate-700 text-[13px] leading-relaxed italic">${escapeHTML(card.meaning || 'Not available')}</div>
+        <div class="english-card mb-3">
+          <div class="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2">📖 Meaning in English</div>
+          <div class="text-slate-800 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Not available')}</div>
           <div class="mt-2 text-[11px] text-slate-500">
             ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
           </div>
+          ${pronunciationRowHTML(card, 'studyNow', serverStudyIndex)}
         </div>
 
-        <div class="border-t border-slate-200 pt-3 mb-4">
+        <div class="mini-card mb-3">
           <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
           <div>${renderWordChips(card.synonyms, 'synonym')}</div>
         </div>
 
-        <div class="border-t border-slate-200 pt-3 mb-4">
+        <div class="mini-card mb-3">
           <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
           <div>${renderWordChips(card.antonyms, 'antonym')}</div>
         </div>
 
-        <div class="border-t border-slate-200 pt-3">
+        <div class="mini-card">
           <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">💡 Example Sentences</div>
           <div class="space-y-2">
             <div class="bg-green-50 rounded-xl p-3">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="badge-easy">EASY</span>
-              </div>
+              <div class="flex items-center gap-2 mb-1"><span class="badge-easy">EASY</span></div>
               <div class="text-slate-700 text-[13px] leading-relaxed">${highlightWord(ex.easy || '—', card.front)}</div>
             </div>
             <div class="bg-yellow-50 rounded-xl p-3">
@@ -1468,13 +1778,8 @@
       rebuildStudyQueue();
     }
 
-    function nextServerCard() {
-      // intentionally disabled for Study Now
-    }
-
-    function prevServerCard() {
-      // intentionally disabled for Study Now
-    }
+    function nextServerCard() {}
+    function prevServerCard() {}
 
     function finishServerStudy() {
       document.getElementById('server-study-screen').classList.add('hidden');
