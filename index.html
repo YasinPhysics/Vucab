@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Passage → Anki (Bangla + Personal SRS Server)</title>
+  <title>Passage → Anki (Login + Firebase Sync)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -138,7 +138,7 @@
     .badge-known { background:#ede9fe; color:#6d28d9; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
     .badge-permanent { background:#dbeafe; color:#1d4ed8; font-size:0.65rem; padding:2px 8px; border-radius:9999px; font-weight:700; letter-spacing:1px; }
 
-    .edit-input, .search-input {
+    .edit-input, .search-input, .auth-input {
       width: 100%;
       background: #020617;
       border: 1px solid #334155;
@@ -148,7 +148,7 @@
       outline: none;
       margin-top: 10px;
     }
-    .edit-input:focus, .search-input:focus { border-color: #10b981; }
+    .edit-input:focus, .search-input:focus, .auth-input:focus { border-color: #10b981; }
 
     .desktop-tip {
       position: fixed;
@@ -200,6 +200,47 @@
     </div>
   </div>
 
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 z-[10001] flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden">
+      <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+        <h2 id="auth-title" class="text-xl font-semibold text-white">Login</h2>
+        <button onclick="hideAuthModal()" class="text-3xl text-slate-400">×</button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="flex bg-slate-800 rounded-2xl p-1">
+          <button id="tab-login" onclick="setAuthMode('login')" class="flex-1 py-2 rounded-xl bg-emerald-600 text-white font-medium">Login</button>
+          <button id="tab-register" onclick="setAuthMode('register')" class="flex-1 py-2 rounded-xl text-slate-300 font-medium">Register</button>
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">Email</label>
+          <input id="auth-email" type="email" class="auth-input mt-0" placeholder="you@example.com">
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">Password</label>
+          <input id="auth-password" type="password" class="auth-input mt-0" placeholder="••••••••">
+        </div>
+
+        <button onclick="submitAuthForm()" class="w-full bg-emerald-600 hover:bg-emerald-500 transition text-white font-semibold py-3 rounded-2xl">
+          <span id="auth-submit-label">Login with Email</span>
+        </button>
+
+        <button onclick="signInWithGoogleFlow()" class="w-full bg-white hover:bg-slate-100 transition text-slate-900 font-semibold py-3 rounded-2xl">
+          Continue with Google
+        </button>
+
+        <button onclick="sendResetPassword()" class="w-full bg-slate-800 hover:bg-slate-700 transition text-slate-200 font-medium py-3 rounded-2xl">
+          Forgot password?
+        </button>
+
+        <div id="auth-message" class="text-sm text-slate-300"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="max-w-3xl mx-auto p-6 hidden" id="app-shell">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
@@ -217,10 +258,7 @@
           class="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 transition px-5 py-2 rounded-2xl text-sm font-medium">
           🗄️ My Server (<span id="server-count">0</span>)
         </button>
-        <div class="flex items-center gap-2 text-xs bg-slate-900 px-3 py-1.5 rounded-full border border-slate-700">
-          <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-          <span class="font-mono">FULL MODE</span>
-        </div>
+        <div id="auth-slot" class="flex items-center gap-2"></div>
       </div>
     </div>
 
@@ -434,12 +472,50 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut,
+      GoogleAuthProvider,
+      signInWithPopup,
+      sendEmailVerification,
+      sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      getDocs,
+      collection,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getStorage } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+
     const MERRIAM_API_KEY = "";
     const MERRIAM_ENDPOINT = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/";
     const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
     const USER_LANGUAGE_KEY = "ankiUserFirstLanguage";
     const SHORTCUT_TIP_KEY = "ankiShortcutTipShown";
+
+    // TODO: Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.firebasestorage.app",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
     const LANGUAGE_OPTIONS = [
       { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
@@ -477,6 +553,8 @@
     ];
 
     let currentUserLanguage = null;
+    let authMode = "login";
+    let currentFirebaseUser = null;
 
     let cards = [];
     let currentIndex = 0;
@@ -505,7 +583,6 @@
       "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
     ]);
 
-    // Safe no-op fallbacks so commenting the marked pronunciation block will not break the app.
     let pronunciationAudio = null;
     function extractPronunciationData() {
       return {
@@ -529,7 +606,6 @@
 
     /* =========================
        PRONUNCIATION FEATURE START
-       You can comment this whole block if you want.
        ========================= */
     function buildMerriamAudioURL(audioFile) {
       if (!audioFile) return "";
@@ -672,10 +748,14 @@
       });
     }
 
-    function persistSavedWords() {
+    async function persistSavedWords() {
       localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
       updateServerCount();
       updateKnownCounts();
+
+      if (currentFirebaseUser) {
+        await syncLocalSavedWordsToFirebase(currentFirebaseUser);
+      }
     }
 
     function isDesktop() {
@@ -696,9 +776,9 @@
       localStorage.setItem(SHORTCUT_TIP_KEY, 'yes');
     }
 
-    function hideDesktopTip() {
+    window.hideDesktopTip = function() {
       document.getElementById('desktop-shortcut-tip').classList.add('hidden');
-    }
+    };
 
     function simpleLemmatize(word) {
       word = word.toLowerCase().trim();
@@ -1046,82 +1126,135 @@
       return { easy, medium, hard };
     }
 
-    async function generateFlashcards() {
-      if (!currentUserLanguage) return;
-      const passage = document.getElementById('passage').value.trim();
-      if (!passage) return alert("Paste a passage first!");
+    async function upsertSharedWordDoc(item) {
+      const wordId = String(item.front || "").toLowerCase().trim();
+      if (!wordId || !currentFirebaseUser) return;
+      const langCode = localStorage.getItem(USER_LANGUAGE_KEY) || "bn";
 
-      const loadingEl = document.getElementById('loading');
-      const loadingText = document.getElementById('loading-text');
-      loadingEl.classList.remove('hidden');
-      loadingText.textContent = 'Extracting words from passage...';
+      await setDoc(
+        doc(db, "words", wordId),
+        {
+          word: wordId,
+          meaning: item.meaning || "",
+          partOfSpeech: item.partOfSpeech || "",
+          synonyms: item.synonyms || [],
+          antonyms: item.antonyms || [],
+          examples: item.examples || {},
+          pronunciationText: item.pronunciationText || "",
+          pronunciationAudioUS: item.pronunciationAudioUS || "",
+          pronunciationAudioUK: item.pronunciationAudioUK || "",
+          nativeMeanings: {
+            [langCode]: item.nativeMeaning || ""
+          },
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+    }
 
-      const sentenceRegex = /[^.!?]+[.!?]+|[^.!?]+$/g;
-      const rawSentences = passage.match(sentenceRegex) || [passage];
-      const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 6);
+    async function syncLocalSavedWordsToFirebase(user) {
+      if (!user) return;
+      const localSavedWords = JSON.parse(localStorage.getItem("ankiSavedWords")) || [];
 
-      const wordRegex = /\b[a-zA-Z]+\b/g;
-      let surfaceWords = [...new Set((passage.match(wordRegex) || []).map(w => w.toLowerCase()))];
+      for (const item of localSavedWords) {
+        const wordId = String(item.front || "").toLowerCase().trim();
+        if (!wordId) continue;
 
-      if (document.getElementById('filter-easy').checked) {
-        surfaceWords = surfaceWords.filter(w => !commonEasyWords.has(w) && w.length > 2);
+        await setDoc(
+          doc(db, "users", user.uid, "savedWords", wordId),
+          {
+            dictionaryWordRef: wordId,
+            nativeMeaning: item.nativeMeaning || "",
+            interval: item.interval || 0,
+            due: item.due || Date.now(),
+            easyStreak: item.easyStreak || 0,
+            permanentlyKnown: !!item.permanentlyKnown,
+            accent: item.accent || "us",
+            updatedAt: serverTimestamp()
+          },
+          { merge: true }
+        );
+
+        await upsertSharedWordDoc(item);
       }
+    }
 
-      const useLemmas = document.getElementById('lemmatize').checked;
-      const keyToSurfaces = new Map();
+    async function loadSavedWordsFromFirebase(user) {
+      if (!user) return [];
 
-      surfaceWords.forEach(s => {
-        const key = useLemmas ? simpleLemmatize(s) : s;
-        if (!keyToSurfaces.has(key)) keyToSurfaces.set(key, new Set());
-        keyToSurfaces.get(key).add(s);
-      });
+      const snap = await getDocs(collection(db, "users", user.uid, "savedWords"));
+      const results = [];
+      const langCode = localStorage.getItem(USER_LANGUAGE_KEY) || "bn";
 
-      const cardKeys = Array.from(keyToSurfaces.keys()).sort();
-      cards = [];
+      for (const savedDoc of snap.docs) {
+        const personal = savedDoc.data();
+        const wordId = savedDoc.id;
 
-      for (let i = 0; i < cardKeys.length; i++) {
-        const key = cardKeys[i];
-        const surfaces = keyToSurfaces.get(key);
-        const matching = sentences.filter(s => sentenceContainsWord(s, surfaces));
-        if (!matching.length) continue;
+        const sharedSnap = await getDoc(doc(db, "words", wordId));
+        const shared = sharedSnap.exists() ? sharedSnap.data() : {};
 
-        loadingText.textContent = `Fetching word data: ${key} (${i + 1}/${cardKeys.length})`;
-
-        const dictData = await getDictionaryData(key);
-        const examples = generateSmartExamples(key, dictData.examples);
-
-        cards.push({
-          front: key,
-          nativeMeaning: dictData.nativeMeaning,
-          back: matching.join('\n\n'),
-          meaning: dictData.meaning,
-          partOfSpeech: dictData.partOfSpeech,
-          synonyms: dictData.synonyms,
-          antonyms: dictData.antonyms,
-          examples,
-          accent: 'us',
-          pronunciationText: dictData.pronunciationText || '',
-          pronunciationAudioUS: dictData.pronunciationAudioUS || '',
-          pronunciationAudioUK: dictData.pronunciationAudioUK || ''
+        results.push({
+          front: wordId,
+          nativeMeaning: personal.nativeMeaning || shared.nativeMeanings?.[langCode] || "",
+          meaning: shared.meaning || "",
+          partOfSpeech: shared.partOfSpeech || "",
+          synonyms: shared.synonyms || [],
+          antonyms: shared.antonyms || [],
+          examples: shared.examples || {},
+          pronunciationText: shared.pronunciationText || "",
+          pronunciationAudioUS: shared.pronunciationAudioUS || "",
+          pronunciationAudioUK: shared.pronunciationAudioUK || "",
+          interval: personal.interval || 0,
+          due: personal.due || Date.now(),
+          easyStreak: personal.easyStreak || 0,
+          permanentlyKnown: !!personal.permanentlyKnown,
+          accent: personal.accent || "us",
+          editingMeaning: false,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          back: ""
         });
       }
 
-      loadingEl.classList.add('hidden');
+      return results;
+    }
 
-      if (!cards.length) return alert("No words left after filters!");
+    async function replaceLocalSavedWordsWithFirebase(user) {
+      const cloudWords = await loadSavedWordsFromFirebase(user);
+      if (cloudWords.length) {
+        savedWords = cloudWords;
+        await persistSavedWords();
+        renderServerList();
+        updateKnownCounts();
+      }
+    }
 
-      document.getElementById('input-screen').classList.add('hidden');
-      document.getElementById('study-screen').classList.remove('hidden');
+    function setAuthMessage(msg, isError = false) {
+      const el = document.getElementById("auth-message");
+      el.textContent = msg;
+      el.className = isError ? "text-sm text-red-400" : "text-sm text-slate-300";
+    }
 
-      currentIndex = 0;
-      renderCurrentCard();
-      updateServerCount();
-      updateKnownCounts();
+    function renderAuthSlot(user) {
+      const slot = document.getElementById("auth-slot");
+      if (!slot) return;
+
+      if (user) {
+        slot.innerHTML = `
+          <button onclick="logoutFlow()" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
+            Logout
+          </button>
+        `;
+      } else {
+        slot.innerHTML = `
+          <button onclick="showAuthModal()" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
+            Login
+          </button>
+        `;
+      }
     }
 
     function pronunciationRowHTML(card, sourceType, idx) {
       const accent = card.accent || 'us';
-      const accentName = accent === 'uk' ? 'UK' : 'US';
       return `
         <div class="pronunciation-bar">
           <div class="flex-1 min-w-0">
@@ -1136,7 +1269,6 @@
             <button
               class="pronounce-btn"
               onclick="event.stopPropagation(); triggerPronunciation('${sourceType}', ${idx})"
-              title="Play ${accentName} pronunciation"
               aria-label="Play pronunciation"
             >🔊</button>
           </div>
@@ -1202,10 +1334,6 @@
       renderCurrentCard();
     }
 
-    function markEasy() {
-      nextCard();
-    }
-
     function setAccent(sourceType, index, accent) {
       if (sourceType === 'passage') {
         cards[index].accent = accent;
@@ -1231,29 +1359,145 @@
       }
     }
 
-    function triggerPronunciation(sourceType, index) {
+    async function triggerPronunciation(sourceType, index) {
       if (sourceType === 'passage') {
         const card = cards[index];
         if (!card) return;
-        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+        await playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
         return;
       }
 
       if (sourceType === 'server') {
         const card = savedWords[index];
         if (!card) return;
-        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+        await playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
         return;
       }
 
       if (sourceType === 'studyNow') {
         const card = serverStudyCards[index];
         if (!card) return;
-        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+        await playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
       }
     }
 
-    function pushToServer() {
+    async function generateFlashcards() {
+      if (!currentUserLanguage) return;
+      const passage = document.getElementById('passage').value.trim();
+      if (!passage) return alert("Paste a passage first!");
+
+      const loadingEl = document.getElementById('loading');
+      const loadingText = document.getElementById('loading-text');
+      loadingEl.classList.remove('hidden');
+      loadingText.textContent = 'Extracting words from passage...';
+
+      const sentenceRegex = /[^.!?]+[.!?]+|[^.!?]+$/g;
+      const rawSentences = passage.match(sentenceRegex) || [passage];
+      const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 6);
+
+      const wordRegex = /\b[a-zA-Z]+\b/g;
+      let surfaceWords = [...new Set((passage.match(wordRegex) || []).map(w => w.toLowerCase()))];
+
+      if (document.getElementById('filter-easy').checked) {
+        surfaceWords = surfaceWords.filter(w => !commonEasyWords.has(w) && w.length > 2);
+      }
+
+      const useLemmas = document.getElementById('lemmatize').checked;
+      const keyToSurfaces = new Map();
+
+      surfaceWords.forEach(s => {
+        const key = useLemmas ? simpleLemmatize(s) : s;
+        if (!keyToSurfaces.has(key)) keyToSurfaces.set(key, new Set());
+        keyToSurfaces.get(key).add(s);
+      });
+
+      const cardKeys = Array.from(keyToSurfaces.keys()).sort();
+      cards = [];
+
+      for (let i = 0; i < cardKeys.length; i++) {
+        const key = cardKeys[i];
+        const surfaces = keyToSurfaces.get(key);
+        const matching = sentences.filter(s => sentenceContainsWord(s, surfaces));
+        if (!matching.length) continue;
+
+        loadingText.textContent = `Fetching word data: ${key} (${i + 1}/${cardKeys.length})`;
+
+        const sharedSnap = currentFirebaseUser ? await getDoc(doc(db, "words", key)) : null;
+        let dictData = null;
+
+        if (sharedSnap && sharedSnap.exists()) {
+          const shared = sharedSnap.data();
+          const langCode = localStorage.getItem(USER_LANGUAGE_KEY) || "bn";
+          dictData = {
+            nativeMeaning: shared.nativeMeanings?.[langCode] || "",
+            meaning: shared.meaning || "",
+            partOfSpeech: shared.partOfSpeech || "",
+            synonyms: shared.synonyms || [],
+            antonyms: shared.antonyms || [],
+            examples: shared.examples || {},
+            pronunciationText: shared.pronunciationText || "",
+            pronunciationAudioUS: shared.pronunciationAudioUS || "",
+            pronunciationAudioUK: shared.pronunciationAudioUK || ""
+          };
+          if (!dictData.nativeMeaning) {
+            const fallback = await getDictionaryData(key);
+            dictData = fallback;
+          }
+        } else {
+          dictData = await getDictionaryData(key);
+          if (currentFirebaseUser) {
+            await setDoc(doc(db, "words", key), {
+              word: key,
+              meaning: dictData.meaning || "",
+              partOfSpeech: dictData.partOfSpeech || "",
+              synonyms: dictData.synonyms || [],
+              antonyms: dictData.antonyms || [],
+              examples: dictData.examples || {},
+              pronunciationText: dictData.pronunciationText || "",
+              pronunciationAudioUS: dictData.pronunciationAudioUS || "",
+              pronunciationAudioUK: dictData.pronunciationAudioUK || "",
+              nativeMeanings: {
+                [localStorage.getItem(USER_LANGUAGE_KEY) || "bn"]: dictData.nativeMeaning || ""
+              },
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+          }
+        }
+
+        cards.push({
+          front: key,
+          nativeMeaning: dictData.nativeMeaning,
+          back: matching.join('\n\n'),
+          meaning: dictData.meaning,
+          partOfSpeech: dictData.partOfSpeech,
+          synonyms: dictData.synonyms,
+          antonyms: dictData.antonyms,
+          examples: dictData.examples,
+          accent: 'us',
+          pronunciationText: dictData.pronunciationText || '',
+          pronunciationAudioUS: dictData.pronunciationAudioUS || '',
+          pronunciationAudioUK: dictData.pronunciationAudioUK || ''
+        });
+      }
+
+      loadingEl.classList.add('hidden');
+
+      if (!cards.length) return alert("No words left after filters!");
+
+      document.getElementById('input-screen').classList.add('hidden');
+      document.getElementById('study-screen').classList.remove('hidden');
+
+      currentIndex = 0;
+      renderCurrentCard();
+      updateServerCount();
+      updateKnownCounts();
+    }
+
+    function markEasy() {
+      nextCard();
+    }
+
+    async function pushToServer() {
       const card = cards[currentIndex];
       if (savedWords.some(w => w.front === card.front)) return alert("Already saved!");
 
@@ -1278,11 +1522,11 @@
         pronunciationAudioUK: card.pronunciationAudioUK || ''
       });
 
-      persistSavedWords();
+      await persistSavedWords();
       showToast("✅ Pushed to server!");
     }
 
-    function pushAllToServer() {
+    async function pushAllToServer() {
       let added = 0;
       cards.forEach(card => {
         if (!savedWords.some(w => w.front === card.front)) {
@@ -1310,12 +1554,12 @@
         }
       });
 
-      persistSavedWords();
+      await persistSavedWords();
       showToast(`✅ ${added} words added to server!`);
       hideAllCards();
     }
 
-    function deleteAllFromServer() {
+    async function deleteAllFromServer() {
       if (!savedWords.length) {
         alert("Server is already empty!");
         return;
@@ -1325,33 +1569,33 @@
       if (!ok) return;
 
       savedWords = [];
-      persistSavedWords();
+      await persistSavedWords();
       openServerModal();
       showToast("🗑️ All vocabulary deleted from server!");
     }
 
     function toggleMeaningEdit(index) {
       savedWords[index].editingMeaning = !savedWords[index].editingMeaning;
-      persistSavedWords();
-      openServerModal();
-      if (savedWords[index].editingMeaning) {
-        setTimeout(() => {
-          const input = document.getElementById(`edit-native-${index}`);
-          if (input) {
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
-          }
-        }, 0);
-      }
+      persistSavedWords().then(() => {
+        openServerModal();
+        if (savedWords[index].editingMeaning) {
+          setTimeout(() => {
+            const input = document.getElementById(`edit-native-${index}`);
+            if (input) {
+              input.focus();
+              input.setSelectionRange(input.value.length, input.value.length);
+            }
+          }, 0);
+        }
+      });
     }
 
     function cancelMeaningEdit(index) {
       savedWords[index].editingMeaning = false;
-      persistSavedWords();
-      openServerModal();
+      persistSavedWords().then(openServerModal);
     }
 
-    function saveMeaningEdit(index) {
+    async function saveMeaningEdit(index) {
       const input = document.getElementById(`edit-native-${index}`);
       if (!input) return;
 
@@ -1364,7 +1608,7 @@
 
       savedWords[index].nativeMeaning = cleaned;
       savedWords[index].editingMeaning = false;
-      persistSavedWords();
+      await persistSavedWords();
       openServerModal();
       showToast("✅ Meaning updated!");
     }
@@ -1572,9 +1816,10 @@
 
     function deleteFromServer(i) {
       savedWords.splice(i, 1);
-      persistSavedWords();
-      renderServerList();
-      updateKnownCounts();
+      persistSavedWords().then(() => {
+        renderServerList();
+        updateKnownCounts();
+      });
     }
 
     function hideServerModal() {
@@ -1747,7 +1992,7 @@
       document.getElementById('server-flashcard').classList.toggle('flipped', serverIsFlipped);
     }
 
-    function rateServerCard(type, minutes) {
+    async function rateServerCard(type, minutes) {
       if (!serverStudyCards.length) return;
 
       const card = serverStudyCards[serverStudyIndex];
@@ -1766,7 +2011,7 @@
         original.due = Date.now() + minutes * 60 * 1000;
       }
 
-      persistSavedWords();
+      await persistSavedWords();
 
       const msg = type === 'again' ? "Again → 1 minute" :
                   type === 'hard' ? "Hard → 10 minutes" :
@@ -1798,6 +2043,102 @@
       document.getElementById('passage').value = '';
     }
 
+    function setAuthMode(mode) {
+      authMode = mode;
+      document.getElementById("auth-title").textContent = mode === "login" ? "Login" : "Register";
+      document.getElementById("auth-submit-label").textContent =
+        mode === "login" ? "Login with Email" : "Register with Email";
+      document.getElementById("tab-login").className =
+        mode === "login"
+          ? "flex-1 py-2 rounded-xl bg-emerald-600 text-white font-medium"
+          : "flex-1 py-2 rounded-xl text-slate-300 font-medium";
+      document.getElementById("tab-register").className =
+        mode === "register"
+          ? "flex-1 py-2 rounded-xl bg-emerald-600 text-white font-medium"
+          : "flex-1 py-2 rounded-xl text-slate-300 font-medium";
+      document.getElementById("auth-message").textContent = "";
+    }
+
+    function showAuthModal() {
+      document.getElementById("auth-modal").classList.remove("hidden");
+    }
+
+    function hideAuthModal() {
+      document.getElementById("auth-modal").classList.add("hidden");
+    }
+
+    async function submitAuthForm() {
+      const email = document.getElementById("auth-email").value.trim();
+      const password = document.getElementById("auth-password").value;
+
+      if (!email || !password) {
+        setAuthMessage("Email and password are required.", true);
+        return;
+      }
+
+      try {
+        if (authMode === "register") {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await sendEmailVerification(cred.user);
+          await syncLocalSavedWordsToFirebase(cred.user);
+          setAuthMessage("Account created. Verification email sent. Please verify your email.");
+        } else {
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          if (!cred.user.emailVerified) {
+            await sendEmailVerification(cred.user);
+            setAuthMessage("Your email is not verified yet. A new verification email was sent.", true);
+          } else {
+            setAuthMessage("Login successful.");
+          }
+          await syncLocalSavedWordsToFirebase(cred.user);
+          await replaceLocalSavedWordsWithFirebase(cred.user);
+          hideAuthModal();
+        }
+      } catch (err) {
+        setAuthMessage(err.message || "Authentication failed.", true);
+      }
+    }
+
+    async function signInWithGoogleFlow() {
+      try {
+        const provider = new GoogleAuthProvider();
+        const cred = await signInWithPopup(auth, provider);
+        await syncLocalSavedWordsToFirebase(cred.user);
+        await replaceLocalSavedWordsWithFirebase(cred.user);
+        hideAuthModal();
+      } catch (err) {
+        setAuthMessage(err.message || "Google sign-in failed.", true);
+      }
+    }
+
+    async function sendResetPassword() {
+      const email = document.getElementById("auth-email").value.trim();
+      if (!email) {
+        setAuthMessage("Enter your email first.", true);
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        setAuthMessage("Password reset email sent.");
+      } catch (err) {
+        setAuthMessage(err.message || "Could not send reset email.", true);
+      }
+    }
+
+    async function logoutFlow() {
+      await signOut(auth);
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      currentFirebaseUser = user || null;
+      renderAuthSlot(user);
+
+      if (user) {
+        await syncLocalSavedWordsToFirebase(user);
+        await replaceLocalSavedWordsWithFirebase(user);
+      }
+    });
+
     document.addEventListener('keydown', e => {
       const target = e.target;
 
@@ -1823,10 +2164,51 @@
       }
     });
 
+    window.setAuthMode = setAuthMode;
+    window.showAuthModal = showAuthModal;
+    window.hideAuthModal = hideAuthModal;
+    window.submitAuthForm = submitAuthForm;
+    window.signInWithGoogleFlow = signInWithGoogleFlow;
+    window.sendResetPassword = sendResetPassword;
+    window.logoutFlow = logoutFlow;
+
+    window.flipCard = flipCard;
+    window.nextCard = nextCard;
+    window.prevCard = prevCard;
+    window.markEasy = markEasy;
+    window.pushToServer = pushToServer;
+    window.pushAllToServer = pushAllToServer;
+    window.deleteAllFromServer = deleteAllFromServer;
+    window.toggleMeaningEdit = toggleMeaningEdit;
+    window.cancelMeaningEdit = cancelMeaningEdit;
+    window.saveMeaningEdit = saveMeaningEdit;
+    window.exportServerCSV = exportServerCSV;
+    window.downloadForAnki = downloadForAnki;
+    window.showAllCards = showAllCards;
+    window.hideAllCards = hideAllCards;
+    window.openServerModal = openServerModal;
+    window.deleteFromServer = deleteFromServer;
+    window.hideServerModal = hideServerModal;
+    window.openKnownModal = openKnownModal;
+    window.hideKnownModal = hideKnownModal;
+    window.startServerStudy = startServerStudy;
+    window.serverFlipCard = serverFlipCard;
+    window.rateServerCard = rateServerCard;
+    window.nextServerCard = nextServerCard;
+    window.prevServerCard = prevServerCard;
+    window.finishServerStudy = finishServerStudy;
+    window.restart = restart;
+    window.clearInput = clearInput;
+    window.generateFlashcards = generateFlashcards;
+    window.setAccent = setAccent;
+    window.triggerPronunciation = triggerPronunciation;
+    window.renderServerList = renderServerList;
+
     window.onload = () => {
       initLanguageGate();
       updateServerCount();
       updateKnownCounts();
+      renderAuthSlot(null);
     };
   </script>
 </body>
