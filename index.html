@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Passage → Anki (Language Ask on Generate)</title>
+  <title>Passage → Anki (Bangla + Personal SRS Server)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -178,12 +178,12 @@
   </style>
 </head>
 <body class="tail-container bg-slate-950 text-slate-200 min-h-screen">
-  <!-- LANGUAGE MODAL (NOW OPENS ONLY WHEN GENERATE IS CLICKED AND LANGUAGE IS NOT SET) -->
-  <div id="language-gate" class="hidden fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+  <!-- LANGUAGE GATE -->
+  <div id="language-gate" class="fixed inset-0 z-[10000] bg-slate-950 hidden items-center justify-center p-4">
     <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
       <div class="p-8 border-b border-slate-800">
-        <h1 class="title-font text-4xl font-semibold tracking-tighter text-white mb-2">Choose your first language</h1>
-        <p class="text-slate-300 text-lg">Select your first language to continue generating cards.</p>
+        <h1 class="title-font text-4xl font-semibold tracking-tighter text-white mb-2">Welcome</h1>
+        <p class="text-slate-300 text-lg">Choose your first language</p>
         <p class="text-slate-400 text-sm mt-2">English will stay as the second language for everyone.</p>
       </div>
 
@@ -435,9 +435,11 @@
   </div>
 
   <script>
+    const MERRIAM_API_KEY = "";
+    const MERRIAM_ENDPOINT = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/";
+    const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
     const USER_LANGUAGE_KEY = "ankiUserFirstLanguage";
     const SHORTCUT_TIP_KEY = "ankiShortcutTipShown";
-    const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
 
     const LANGUAGE_OPTIONS = [
       { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
@@ -475,13 +477,15 @@
     ];
 
     let currentUserLanguage = null;
+    let pendingGenerateAfterLanguageChoice = false;
+
     let cards = [];
     let currentIndex = 0;
     let isFlipped = false;
+
     let serverStudyCards = [];
     let serverStudyIndex = 0;
     let serverIsFlipped = false;
-    let pendingGenerateAfterLanguagePick = false;
 
     let savedWords = JSON.parse(localStorage.getItem('ankiSavedWords')) || [];
     savedWords = savedWords.map(w => ({
@@ -502,7 +506,103 @@
       "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
     ]);
 
+    // Safe no-op fallbacks so commenting the marked pronunciation block will not break the app.
     let pronunciationAudio = null;
+    function extractPronunciationData() {
+      return {
+        pronunciationText: "",
+        pronunciationAudioUS: "",
+        pronunciationAudioUK: ""
+      };
+    }
+    async function playWordPronunciation() {}
+    function stopWordPronunciation() {
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch {}
+      try {
+        if (pronunciationAudio) {
+          pronunciationAudio.pause();
+          pronunciationAudio.currentTime = 0;
+        }
+      } catch {}
+    }
+
+    /* =========================
+       PRONUNCIATION FEATURE START
+       You can comment this whole block if you want.
+       ========================= */
+    function buildMerriamAudioURL(audioFile) {
+      if (!audioFile) return "";
+      let subdirectory = audioFile[0];
+      if (/^bix/.test(audioFile)) subdirectory = "bix";
+      else if (/^gg/.test(audioFile)) subdirectory = "gg";
+      else if (/^[0-9]|^_/.test(audioFile)) subdirectory = "number";
+      return `https://media.merriam-webster.com/audio/prons/en/us/mp3/${subdirectory}/${audioFile}.mp3`;
+    }
+
+    function extractPronunciationData(freeData, merriamData) {
+      const result = {
+        pronunciationText: "",
+        pronunciationAudioUS: "",
+        pronunciationAudioUK: ""
+      };
+
+      if (freeData?.entries?.length) {
+        for (const entry of freeData.entries) {
+          if (Array.isArray(entry.pronunciations)) {
+            const found = entry.pronunciations.find(p => p?.text);
+            if (found?.text && !result.pronunciationText) {
+              result.pronunciationText = String(found.text).trim();
+            }
+          }
+        }
+      }
+
+      if (merriamData && Array.isArray(merriamData) && merriamData.length && typeof merriamData[0] !== "string") {
+        const entry = merriamData.find(item => item?.hwi?.prs?.length) || merriamData[0];
+        const prs = entry?.hwi?.prs || [];
+        const firstText = prs.find(p => p?.mw)?.mw;
+        if (firstText && !result.pronunciationText) {
+          result.pronunciationText = `/${String(firstText).trim()}/`;
+        }
+
+        const usAudio = prs.find(p => p?.sound?.audio)?.sound?.audio;
+        if (usAudio) result.pronunciationAudioUS = buildMerriamAudioURL(usAudio);
+
+        const ukAudio = prs.find(p => {
+          const labels = Array.isArray(p?.l) ? p.l.join(" ").toLowerCase() : "";
+          return labels.includes("british");
+        })?.sound?.audio;
+
+        if (ukAudio) result.pronunciationAudioUK = buildMerriamAudioURL(ukAudio);
+      }
+
+      return result;
+    }
+
+    async function playWordPronunciation(word, accent = 'us', pronunciationAudioUS = "", pronunciationAudioUK = "") {
+      stopWordPronunciation();
+
+      const pickedAudio = accent === 'uk' ? (pronunciationAudioUK || pronunciationAudioUS) : (pronunciationAudioUS || pronunciationAudioUK);
+
+      if (pickedAudio) {
+        pronunciationAudio = new Audio(pickedAudio);
+        pronunciationAudio.play().catch(() => {});
+        return;
+      }
+
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(word);
+        utter.lang = accent === 'uk' ? 'en-GB' : 'en-US';
+        utter.rate = 0.92;
+        utter.pitch = 1;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+    /* =======================
+       PRONUNCIATION FEATURE END
+       ======================= */
 
     function getUserLanguage() {
       const code = localStorage.getItem(USER_LANGUAGE_KEY);
@@ -513,11 +613,11 @@
       localStorage.setItem(USER_LANGUAGE_KEY, code);
       currentUserLanguage = getUserLanguage();
       applyUserLanguageToUI();
-      closeLanguageModal();
+      closeLanguageGate();
 
-      if (pendingGenerateAfterLanguagePick) {
-        pendingGenerateAfterLanguagePick = false;
-        generateFlashcardsCore();
+      if (pendingGenerateAfterLanguageChoice) {
+        pendingGenerateAfterLanguageChoice = false;
+        generateFlashcards();
       }
     }
 
@@ -525,27 +625,45 @@
       currentUserLanguage = getUserLanguage();
       const header = document.getElementById('header-first-language');
       if (!header) return;
-      header.textContent = currentUserLanguage ? currentUserLanguage.native : 'First Language';
+      header.textContent = currentUserLanguage ? currentUserLanguage.native : "Choose language on Generate";
     }
 
     function getMeaningLabel() {
-      return currentUserLanguage?.label || 'Meaning';
+      return currentUserLanguage?.label || "Meaning";
     }
 
-    function openLanguageModal() {
-      renderLanguageList(document.getElementById('language-search')?.value || '');
-      document.getElementById('language-gate').classList.remove('hidden');
+    function openLanguageGate(afterSelectGenerate = false) {
+      if (afterSelectGenerate) pendingGenerateAfterLanguageChoice = true;
+      renderLanguageList("");
+      const searchInput = document.getElementById('language-search');
+      if (searchInput) {
+        searchInput.value = "";
+        setTimeout(() => searchInput.focus(), 0);
+      }
+      const gate = document.getElementById('language-gate');
+      gate.classList.remove('hidden');
+      gate.classList.add('flex');
+      document.body.style.overflow = 'hidden';
     }
 
-    function closeLanguageModal() {
-      document.getElementById('language-gate').classList.add('hidden');
+    function closeLanguageGate() {
+      const gate = document.getElementById('language-gate');
+      gate.classList.add('hidden');
+      gate.classList.remove('flex');
+      document.body.style.overflow = '';
     }
 
-    function initLanguageSearch() {
-      renderLanguageList('');
+    function initLanguageGate() {
+      currentUserLanguage = getUserLanguage();
+      applyUserLanguageToUI();
+
+      renderLanguageList("");
       document.getElementById('language-search').addEventListener('input', e => {
-        renderLanguageList(e.target.value || '');
+        renderLanguageList(e.target.value || "");
       });
+
+      closeLanguageGate();
+      document.getElementById('app-shell').classList.remove('hidden');
     }
 
     function renderLanguageList(query) {
@@ -588,8 +706,8 @@
 
     function shouldIgnoreShortcutTarget(target) {
       if (!target) return false;
-      const tag = (target.tagName || '').toLowerCase();
-      return tag === 'input' || tag === 'textarea' || target.isContentEditable;
+      const tag = (target.tagName || "").toLowerCase();
+      return tag === "input" || tag === "textarea" || target.isContentEditable;
     }
 
     function showDesktopTipOnce() {
@@ -644,9 +762,20 @@
       return [...new Set((arr || []).filter(Boolean).map(s => String(s).trim()).filter(Boolean))];
     }
 
+    function isMostlyNative(text, langCode) {
+      if (!text) return false;
+      if (langCode === 'bn') {
+        const banglaChars = (text.match(/[\u0980-\u09FF]/g) || []).length;
+        const devanagariChars = (text.match(/[\u0900-\u097F]/g) || []).length;
+        if (devanagariChars > 0) return false;
+        return banglaChars > 0;
+      }
+      return text.trim().length > 0;
+    }
+
     function normalizeDefinition(text) {
-      if (!text) return '';
-      return String(text).replace(/\s+/g, ' ').trim();
+      if (!text) return "";
+      return String(text).replace(/\s+/g, ' ').replace(/\{[^}]+\}/g, '').trim();
     }
 
     function sentenceContainsWord(sentence, surfaces) {
@@ -659,25 +788,25 @@
     function makeEasyMeaningFallback(word) {
       const w = String(word).toLowerCase();
       const simpleMap = {
-        when: 'used to ask or talk about the time something happens',
-        where: 'used to ask or talk about the place of something',
-        why: 'used to ask the reason for something',
-        how: 'used to ask the way something happens or is done',
-        what: 'used to ask for information about something',
-        who: 'used to ask which person',
-        because: 'for the reason that',
-        although: 'in spite of the fact that',
-        however: 'but; in a different way than expected',
-        therefore: 'for that reason',
-        find: 'to discover or get something',
-        analyze: 'to study something carefully',
-        observe: 'to watch carefully',
-        require: 'to need something',
-        occur: 'to happen',
-        affect: 'to influence something',
-        indicate: 'to show or point out',
-        improve: 'to make better',
-        compare: 'to examine similarities and differences'
+        when: "used to ask or talk about the time something happens",
+        where: "used to ask or talk about the place of something",
+        why: "used to ask the reason for something",
+        how: "used to ask the way something happens or is done",
+        what: "used to ask for information about something",
+        who: "used to ask which person",
+        because: "for the reason that",
+        although: "in spite of the fact that",
+        however: "but; in a different way than expected",
+        therefore: "for that reason",
+        find: "to discover or get something",
+        analyze: "to study something carefully",
+        observe: "to watch carefully",
+        require: "to need something",
+        occur: "to happen",
+        affect: "to influence something",
+        indicate: "to show or point out",
+        improve: "to make better",
+        compare: "to examine similarities and differences"
       };
       if (simpleMap[w]) return simpleMap[w];
       return `easy English meaning not available yet for "${w}"`;
@@ -707,7 +836,7 @@
     }
 
     function formatRemainingTime(ms) {
-      if (ms <= 0) return 'Ready now';
+      if (ms <= 0) return "Ready now";
       const minutes = Math.floor(ms / 60000);
       const days = Math.floor(minutes / 1440);
       const hours = Math.floor((minutes % 1440) / 60);
@@ -731,6 +860,71 @@
       return list.map(w => `<span class="word-chip ${type}">${escapeHTML(w)}</span>`).join('');
     }
 
+    async function fetchMerriamRaw(word) {
+      if (!MERRIAM_API_KEY) return null;
+      try {
+        const url = `${MERRIAM_ENDPOINT}${encodeURIComponent(word)}?key=${encodeURIComponent(MERRIAM_API_KEY)}`;
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        return await r.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchMerriamData(word) {
+      const data = await fetchMerriamRaw(word);
+      if (!Array.isArray(data) || !data.length || typeof data[0] === "string") return { raw: data, parsed: null };
+
+      const entry = data.find(item => item && typeof item === "object" && Array.isArray(item.shortdef)) || data[0];
+      if (!entry || typeof entry !== "object") return { raw: data, parsed: null };
+
+      const shortdef = Array.isArray(entry.shortdef) ? entry.shortdef : [];
+      const meaning = normalizeDefinition(shortdef[0] || "");
+      const partOfSpeech = entry.fl || "";
+
+      let examples = [];
+      let synonyms = [];
+      let antonyms = [];
+
+      if (Array.isArray(entry.def)) {
+        for (const defBlock of entry.def) {
+          if (defBlock && Array.isArray(defBlock.sseq)) {
+            for (const sseqItem of defBlock.sseq) {
+              if (Array.isArray(sseqItem)) {
+                for (const senseWrap of sseqItem) {
+                  if (Array.isArray(senseWrap) && senseWrap[0] === "sense" && senseWrap[1]?.dt) {
+                    for (const dtItem of senseWrap[1].dt) {
+                      if (Array.isArray(dtItem) && dtItem[0] === "vis" && Array.isArray(dtItem[1])) {
+                        dtItem[1].forEach(v => {
+                          if (v?.t) examples.push(String(v.t).replace(/\{it\}|\{\/it\}/g, ""));
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (Array.isArray(entry.meta?.syns)) entry.meta.syns.forEach(group => { if (Array.isArray(group)) synonyms.push(...group); });
+      if (Array.isArray(entry.meta?.ants)) entry.meta.ants.forEach(group => { if (Array.isArray(group)) antonyms.push(...group); });
+
+      return {
+        raw: data,
+        parsed: {
+          meaning: meaning || "",
+          partOfSpeech,
+          examples: dedupeStrings(examples),
+          synonyms: dedupeStrings(synonyms),
+          antonyms: dedupeStrings(antonyms),
+          nativeMeaning: ""
+        }
+      };
+    }
+
     async function fetchFreeDictionaryRaw(word) {
       try {
         const url = `${FREE_DICT_ENDPOINT}en/${encodeURIComponent(word)}?translations=true`;
@@ -747,26 +941,17 @@
       const entries = Array.isArray(data?.entries) ? data.entries : [];
       if (!entries.length) return { raw: data, parsed: null };
 
-      let meaning = '';
-      let partOfSpeech = '';
+      let meaning = "";
+      let partOfSpeech = "";
       let examples = [];
       let nativeTranslations = [];
       let synonyms = [];
       let antonyms = [];
-      let pronunciationText = '';
-      let pronunciationAudioUS = '';
 
       for (const entry of entries) {
         if (!partOfSpeech && entry?.partOfSpeech) partOfSpeech = entry.partOfSpeech;
         if (Array.isArray(entry?.synonyms)) synonyms.push(...entry.synonyms.map(String));
         if (Array.isArray(entry?.antonyms)) antonyms.push(...entry.antonyms.map(String));
-
-        if (Array.isArray(entry?.pronunciations)) {
-          const pText = entry.pronunciations.find(p => p?.text)?.text;
-          const pAudio = entry.pronunciations.find(p => p?.audio)?.audio;
-          if (!pronunciationText && pText) pronunciationText = String(pText).trim();
-          if (!pronunciationAudioUS && pAudio) pronunciationAudioUS = String(pAudio).trim();
-        }
 
         const senses = Array.isArray(entry?.senses) ? entry.senses : [];
         for (const sense of senses) {
@@ -777,12 +962,36 @@
 
           if (Array.isArray(sense?.translations)) {
             sense.translations.forEach(tr => {
-              const code = String(tr?.language?.code || '').toLowerCase();
-              const w = String(tr?.word || '').trim();
-              if (currentUserLanguage?.code && w && code === currentUserLanguage.code) {
+              const code = String(tr?.language?.code || "").toLowerCase();
+              const name = String(tr?.language?.name || "").toLowerCase();
+              const w = String(tr?.word || "").trim();
+              const userCode = currentUserLanguage?.code?.toLowerCase();
+              const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
+              if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
                 nativeTranslations.push(w);
               }
             });
+          }
+
+          const subsenses = Array.isArray(sense?.subsenses) ? sense.subsenses : [];
+          for (const sub of subsenses) {
+            if (!meaning && sub?.definition) meaning = normalizeDefinition(sub.definition);
+            if (Array.isArray(sub?.examples)) examples.push(...sub.examples.map(String));
+            if (Array.isArray(sub?.synonyms)) synonyms.push(...sub.synonyms.map(String));
+            if (Array.isArray(sub?.antonyms)) antonyms.push(...sub.antonyms.map(String));
+
+            if (Array.isArray(sub?.translations)) {
+              sub.translations.forEach(tr => {
+                const code = String(tr?.language?.code || "").toLowerCase();
+                const name = String(tr?.language?.name || "").toLowerCase();
+                const w = String(tr?.word || "").trim();
+                const userCode = currentUserLanguage?.code?.toLowerCase();
+                const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
+                if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
+                  nativeTranslations.push(w);
+                }
+              });
+            }
           }
         }
       }
@@ -790,38 +999,57 @@
       return {
         raw: data,
         parsed: {
-          meaning: meaning || '',
+          meaning: meaning || "",
           partOfSpeech,
           examples: dedupeStrings(examples),
           synonyms: dedupeStrings(synonyms),
           antonyms: dedupeStrings(antonyms),
-          nativeMeaning: dedupeStrings(nativeTranslations)[0] || '',
-          pronunciationText,
-          pronunciationAudioUS,
-          pronunciationAudioUK: ''
+          nativeMeaning: dedupeStrings(nativeTranslations)[0] || ""
         }
       };
     }
 
+    async function fetchNativeMeaningFallback(word) {
+      const userCode = currentUserLanguage?.code || "bn";
+      try {
+        const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|${encodeURIComponent(userCode)}`);
+        const d = await r.json();
+        const translated = d?.responseData?.translatedText?.trim() || "";
+        if (!translated || !isMostlyNative(translated, userCode)) return "";
+        return translated;
+      } catch {
+        return "";
+      }
+    }
+
     async function getDictionaryData(word) {
-      const freeResult = await fetchFreeDictionaryData(word);
+      const [freeResult, merriamResult] = await Promise.all([
+        fetchFreeDictionaryData(word),
+        fetchMerriamData(word)
+      ]);
+
       const primary = freeResult?.parsed || null;
+      const secondary = merriamResult?.parsed || null;
 
       const merged = {
-        meaning: primary?.meaning || '',
-        partOfSpeech: primary?.partOfSpeech || '',
-        examples: dedupeStrings([...(primary?.examples || [])]),
-        synonyms: dedupeStrings([...(primary?.synonyms || [])]),
-        antonyms: dedupeStrings([...(primary?.antonyms || [])]),
-        nativeMeaning: primary?.nativeMeaning || '',
-        pronunciationText: primary?.pronunciationText || '',
-        pronunciationAudioUS: primary?.pronunciationAudioUS || '',
-        pronunciationAudioUK: primary?.pronunciationAudioUK || ''
+        meaning: primary?.meaning || secondary?.meaning || "",
+        partOfSpeech: primary?.partOfSpeech || secondary?.partOfSpeech || "",
+        examples: dedupeStrings([...(primary?.examples || []), ...(secondary?.examples || [])]),
+        synonyms: dedupeStrings([...(primary?.synonyms || []), ...(secondary?.synonyms || [])]),
+        antonyms: dedupeStrings([...(primary?.antonyms || []), ...(secondary?.antonyms || [])]),
+        nativeMeaning: primary?.nativeMeaning || secondary?.nativeMeaning || ""
       };
 
+      if (!merged.nativeMeaning) merged.nativeMeaning = await fetchNativeMeaningFallback(word);
       if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
       if (!merged.meaning) merged.meaning = makeEasyMeaningFallback(word);
-      return merged;
+
+      const pronunciation = extractPronunciationData(freeResult?.raw, merriamResult?.raw);
+
+      return {
+        ...merged,
+        ...pronunciation
+      };
     }
 
     function chooseBestApiExamples(apiExamples) {
@@ -840,21 +1068,14 @@
       return { easy, medium, hard };
     }
 
-    // =========================
-    // MAIN CHANGE STARTS HERE
-    // =========================
     async function generateFlashcards() {
       if (!currentUserLanguage) {
-        pendingGenerateAfterLanguagePick = true;
-        openLanguageModal();
+        openLanguageGate(true);
         return;
       }
-      await generateFlashcardsCore();
-    }
 
-    async function generateFlashcardsCore() {
       const passage = document.getElementById('passage').value.trim();
-      if (!passage) return alert('Paste a passage first!');
+      if (!passage) return alert("Paste a passage first!");
 
       const loadingEl = document.getElementById('loading');
       const loadingText = document.getElementById('loading-text');
@@ -913,7 +1134,7 @@
 
       loadingEl.classList.add('hidden');
 
-      if (!cards.length) return alert('No words left after filters!');
+      if (!cards.length) return alert("No words left after filters!");
 
       document.getElementById('input-screen').classList.add('hidden');
       document.getElementById('study-screen').classList.remove('hidden');
@@ -923,9 +1144,6 @@
       updateServerCount();
       updateKnownCounts();
     }
-    // =========================
-    // MAIN CHANGE ENDS HERE
-    // =========================
 
     function pronunciationRowHTML(card, sourceType, idx) {
       const accent = card.accent || 'us';
@@ -1039,38 +1257,6 @@
       }
     }
 
-    async function playWordPronunciation(word, accent = 'us', pronunciationAudioUS = '', pronunciationAudioUK = '') {
-      stopWordPronunciation();
-
-      const pickedAudio = accent === 'uk' ? (pronunciationAudioUK || pronunciationAudioUS) : (pronunciationAudioUS || pronunciationAudioUK);
-
-      if (pickedAudio) {
-        pronunciationAudio = new Audio(pickedAudio);
-        pronunciationAudio.play().catch(() => {});
-        return;
-      }
-
-      if ('speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(word);
-        utter.lang = accent === 'uk' ? 'en-GB' : 'en-US';
-        utter.rate = 0.92;
-        utter.pitch = 1;
-        window.speechSynthesis.speak(utter);
-      }
-    }
-
-    function stopWordPronunciation() {
-      try {
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-      } catch {}
-      try {
-        if (pronunciationAudio) {
-          pronunciationAudio.pause();
-          pronunciationAudio.currentTime = 0;
-        }
-      } catch {}
-    }
-
     function triggerPronunciation(sourceType, index) {
       if (sourceType === 'passage') {
         const card = cards[index];
@@ -1095,7 +1281,7 @@
 
     function pushToServer() {
       const card = cards[currentIndex];
-      if (savedWords.some(w => w.front === card.front)) return alert('Already saved!');
+      if (savedWords.some(w => w.front === card.front)) return alert("Already saved!");
 
       savedWords.unshift({
         front: card.front,
@@ -1119,7 +1305,7 @@
       });
 
       persistSavedWords();
-      showToast('✅ Pushed to server!');
+      showToast("✅ Pushed to server!");
     }
 
     function pushAllToServer() {
@@ -1157,17 +1343,17 @@
 
     function deleteAllFromServer() {
       if (!savedWords.length) {
-        alert('Server is already empty!');
+        alert("Server is already empty!");
         return;
       }
 
-      const ok = confirm('Are you sure you want to delete ALL saved vocabulary from server?');
+      const ok = confirm("Are you sure you want to delete ALL saved vocabulary from server?");
       if (!ok) return;
 
       savedWords = [];
       persistSavedWords();
       openServerModal();
-      showToast('🗑️ All vocabulary deleted from server!');
+      showToast("🗑️ All vocabulary deleted from server!");
     }
 
     function toggleMeaningEdit(index) {
@@ -1206,11 +1392,11 @@
       savedWords[index].editingMeaning = false;
       persistSavedWords();
       openServerModal();
-      showToast('✅ Meaning updated!');
+      showToast("✅ Meaning updated!");
     }
 
     function exportServerCSV() {
-      if (!savedWords.length) return alert('Nothing to export!');
+      if (!savedWords.length) return alert("Nothing to export!");
       let csv = `English\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\tEasy Example\tMedium Example\tHard Example\tDue\tEasy Streak\tPermanent Known\tDate\n`;
 
       savedWords.forEach(item => {
@@ -1475,7 +1661,7 @@
       if (!serverStudyCards.length) {
         document.getElementById('server-card-number').textContent = 0;
         document.getElementById('server-total-cards').textContent = 0;
-        document.getElementById('server-front-word').textContent = 'Done';
+        document.getElementById('server-front-word').textContent = "Done";
         document.getElementById('server-back-content').innerHTML = `
           <div class="text-center w-full">
             <div class="text-2xl font-bold text-slate-700 mb-3">No due words right now</div>
@@ -1505,7 +1691,7 @@
 
     function startServerStudy() {
       if (!savedWords.length) {
-        alert('Your server is empty!\nPush some words first.');
+        alert("Your server is empty!\nPush some words first.");
         return;
       }
 
@@ -1608,15 +1794,23 @@
 
       persistSavedWords();
 
-      showToast('✅ Rated!');
+      const msg = type === 'again' ? "Again → 1 minute" :
+                  type === 'hard' ? "Hard → 10 minutes" :
+                  type === 'good' ? "Good → 1 day" :
+                  "Easy → 5 days";
+
+      showToast(`✅ Rated! Next review: ${msg}`);
       showDesktopTipOnce();
       rebuildStudyQueue();
     }
 
+    function nextServerCard() {}
+    function prevServerCard() {}
+
     function finishServerStudy() {
       document.getElementById('server-study-screen').classList.add('hidden');
       document.getElementById('input-screen').classList.remove('hidden');
-      showToast('🎉 Session Complete! Back to Passage → Vocabulary');
+      showToast("🎉 Session Complete! Back to Passage → Vocabulary");
     }
 
     function restart() {
@@ -1649,16 +1843,14 @@
         if (k === 'e') { e.preventDefault(); rateServerCard('easy', 7200); }
       } else if (!document.getElementById('study-screen').classList.contains('hidden')) {
         if (shouldIgnoreShortcutTarget(target)) return;
-        if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); nextCard(); }
-        if (e.key === 'ArrowLeft') { e.preventDefault(); prevCard(); }
-        if (e.key.toLowerCase() === 'f') flipCard();
+        if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); prevCard(); }
+        if (e.key.toLowerCase() === "f") flipCard();
       }
     });
 
     window.onload = () => {
-      currentUserLanguage = getUserLanguage();
-      applyUserLanguageToUI();
-      initLanguageSearch();
+      initLanguageGate();
       updateServerCount();
       updateKnownCounts();
     };
