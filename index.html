@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Passage → Anki (Bangla + Personal SRS Server)</title>
+  <title>Passage → Anki (120+ Languages + Google Translate Fallback)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -180,7 +180,7 @@
 <body class="tail-container bg-slate-950 text-slate-200 min-h-screen">
   <!-- LANGUAGE GATE -->
   <div id="language-gate" class="fixed inset-0 z-[10000] bg-slate-950 hidden items-center justify-center p-4">
-    <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+    <div class="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
       <div class="p-8 border-b border-slate-800">
         <h1 class="title-font text-4xl font-semibold tracking-tighter text-white mb-2">Welcome</h1>
         <p class="text-slate-300 text-lg">Choose your first language</p>
@@ -208,7 +208,7 @@
           Passage → Anki
         </h1>
         <p class="text-emerald-300 text-sm">
-          <span id="header-first-language">First Language</span> • English • Filters •
+          <span id="header-first-language">Choose language on Generate</span> • English • Filters •
           <span class="text-amber-300">🗄️ Personal SRS Server</span>
         </p>
       </div>
@@ -441,40 +441,182 @@
     const USER_LANGUAGE_KEY = "ankiUserFirstLanguage";
     const SHORTCUT_TIP_KEY = "ankiShortcutTipShown";
 
+    /*
+      Google Translate নিরাপদভাবে ব্যবহার করতে backend দরকার।
+      পরে এখানে endpoint বসাবে, যেমন:
+      googleEndpoint: "/api/translate"
+
+      backend request body:
+      {
+        text: "find",
+        source: "en",
+        target: "bn"
+      }
+
+      backend response ideally:
+      {
+        translatedText: "খুঁজে পাওয়া"
+      }
+    */
+    const TRANSLATION_CONFIG = {
+      googleEndpoint: "",
+      useGoogleFirst: true,
+      googleTimeoutMs: 7000,
+      myMemoryTimeoutMs: 7000
+    };
+
     const LANGUAGE_OPTIONS = [
-      { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
-      { code: "hi", name: "Hindi", native: "हिन्दी", label: "हिंदी अर्थ", aliases: ["hindi", "हिन्दी"] },
-      { code: "ur", name: "Urdu", native: "اردو", label: "اردو معنی", aliases: ["urdu", "اردو"] },
+      { code: "af", name: "Afrikaans", native: "Afrikaans", label: "Betekenis", aliases: ["afrikaans"] },
+      { code: "sq", name: "Albanian", native: "Shqip", label: "Kuptimi", aliases: ["albanian"] },
+      { code: "am", name: "Amharic", native: "አማርኛ", label: "ትርጉም", aliases: ["amharic"] },
       { code: "ar", name: "Arabic", native: "العربية", label: "المعنى", aliases: ["arabic", "العربية"] },
-      { code: "tr", name: "Turkish", native: "Türkçe", label: "Türkçe anlam", aliases: ["turkish", "türkçe"] },
-      { code: "fa", name: "Persian", native: "فارسی", label: "معنی", aliases: ["persian", "farsi", "فارسی"] },
-      { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian"] },
-      { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay"] },
-      { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai"] },
-      { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese"] },
-      { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin"] },
-      { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese"] },
-      { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean"] },
-      { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian"] },
-      { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian"] },
-      { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish"] },
-      { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german"] },
-      { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french"] },
-      { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish"] },
-      { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese"] },
-      { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian"] },
-      { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch"] },
-      { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish"] },
-      { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian"] },
-      { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish"] },
-      { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish"] },
-      { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek"] },
-      { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian"] },
+      { code: "hy", name: "Armenian", native: "Հայերեն", label: "Իմաստ", aliases: ["armenian"] },
+      { code: "as", name: "Assamese", native: "অসমীয়া", label: "অৰ্থ", aliases: ["assamese"] },
+      { code: "ay", name: "Aymara", native: "Aymar aru", label: "Saña", aliases: ["aymara"] },
+      { code: "az", name: "Azerbaijani", native: "Azərbaycanca", label: "Məna", aliases: ["azerbaijani"] },
+      { code: "bm", name: "Bambara", native: "Bamanankan", label: "Kɔrɔ", aliases: ["bambara"] },
+      { code: "eu", name: "Basque", native: "Euskara", label: "Esanahia", aliases: ["basque"] },
+      { code: "be", name: "Belarusian", native: "Беларуская", label: "Значэнне", aliases: ["belarusian"] },
+      { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
+      { code: "bho", name: "Bhojpuri", native: "भोजपुरी", label: "अर्थ", aliases: ["bhojpuri"] },
+      { code: "bs", name: "Bosnian", native: "Bosanski", label: "Značenje", aliases: ["bosnian"] },
+      { code: "br", name: "Breton", native: "Brezhoneg", label: "Talvoudegezh", aliases: ["breton"] },
+      { code: "bg", name: "Bulgarian", native: "Български", label: "Значение", aliases: ["bulgarian"] },
+      { code: "my", name: "Burmese", native: "မြန်မာ", label: "အဓိပ္ပါယ်", aliases: ["burmese", "myanmar"] },
+      { code: "ca", name: "Catalan", native: "Català", label: "Significat", aliases: ["catalan"] },
+      { code: "ceb", name: "Cebuano", native: "Cebuano", label: "Kahulogan", aliases: ["cebuano"] },
+      { code: "ny", name: "Chichewa", native: "Chichewa", label: "Tanthauzo", aliases: ["chichewa"] },
+      { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin", "中文"] },
+      { code: "zh-CN", name: "Chinese (Simplified)", native: "简体中文", label: "词义", aliases: ["simplified chinese", "简体中文"] },
+      { code: "zh-TW", name: "Chinese (Traditional)", native: "繁體中文", label: "詞義", aliases: ["traditional chinese", "繁體中文"] },
+      { code: "co", name: "Corsican", native: "Corsu", label: "Significatu", aliases: ["corsican"] },
+      { code: "hr", name: "Croatian", native: "Hrvatski", label: "Značenje", aliases: ["croatian"] },
+      { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech", "čeština"] },
+      { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish", "dansk"] },
+      { code: "prs", name: "Dari", native: "دری", label: "معنی", aliases: ["dari"] },
+      { code: "dv", name: "Divehi", native: "ދިވެހި", label: "މާނަ", aliases: ["divehi", "maldivian"] },
+      { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch", "nederlands"] },
+      { code: "dz", name: "Dzongkha", native: "རྫོང་ཁ", label: "དོན", aliases: ["dzongkha"] },
+      { code: "en", name: "English", native: "English", label: "Meaning", aliases: ["english"] },
+      { code: "eo", name: "Esperanto", native: "Esperanto", label: "Signifo", aliases: ["esperanto"] },
+      { code: "et", name: "Estonian", native: "Eesti", label: "Tähendus", aliases: ["estonian"] },
+      { code: "ee", name: "Ewe", native: "Eʋegbe", label: "Gɔmeɖeɖe", aliases: ["ewe"] },
+      { code: "fo", name: "Faroese", native: "Føroyskt", label: "Merking", aliases: ["faroese"] },
+      { code: "fj", name: "Fijian", native: "Vosa Vakaviti", label: "iBalebale", aliases: ["fijian"] },
+      { code: "tl", name: "Filipino", native: "Filipino", label: "Kahulugan", aliases: ["filipino", "tagalog"] },
+      { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish", "suomi"] },
+      { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french", "français"] },
+      { code: "fy", name: "Frisian", native: "Frysk", label: "Betsjutting", aliases: ["frisian"] },
+      { code: "fur", name: "Friulian", native: "Furlan", label: "Significât", aliases: ["friulian"] },
+      { code: "ff", name: "Fulah", native: "Fulfulde", label: "Maana", aliases: ["fulah", "fulfulde"] },
+      { code: "gl", name: "Galician", native: "Galego", label: "Significado", aliases: ["galician"] },
+      { code: "ka", name: "Georgian", native: "ქართული", label: "მნიშვნელობა", aliases: ["georgian"] },
+      { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german", "deutsch"] },
+      { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek", "ελληνικά"] },
+      { code: "gn", name: "Guarani", native: "Avañe'ẽ", label: "He'iséva", aliases: ["guarani"] },
+      { code: "gu", name: "Gujarati", native: "ગુજરાતી", label: "અર્થ", aliases: ["gujarati"] },
+      { code: "ht", name: "Haitian Creole", native: "Kreyòl Ayisyen", label: "Siyifikasyon", aliases: ["haitian creole", "creole"] },
+      { code: "ha", name: "Hausa", native: "Hausa", label: "Ma’ana", aliases: ["hausa"] },
+      { code: "haw", name: "Hawaiian", native: "ʻŌlelo Hawaiʻi", label: "Manaʻo", aliases: ["hawaiian"] },
+      { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew", "עברית"] },
+      { code: "hi", name: "Hindi", native: "हिन्दी", label: "हिंदी अर्थ", aliases: ["hindi", "हिन्दी"] },
+      { code: "hmn", name: "Hmong", native: "Hmoob", label: "Lub ntsiab", aliases: ["hmong"] },
       { code: "hu", name: "Hungarian", native: "Magyar", label: "Jelentés", aliases: ["hungarian"] },
-      { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech"] },
-      { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew"] },
-      { code: "tl", name: "Filipino", native: "Filipino", label: "Kahulugan", aliases: ["filipino", "tagalog"] }
-    ];
+      { code: "is", name: "Icelandic", native: "Íslenska", label: "Merking", aliases: ["icelandic"] },
+      { code: "ig", name: "Igbo", native: "Igbo", label: "Pụtara", aliases: ["igbo"] },
+      { code: "ilo", name: "Ilocano", native: "Ilokano", label: "Kahulugan", aliases: ["ilocano"] },
+      { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian", "bahasa indonesia"] },
+      { code: "ga", name: "Irish", native: "Gaeilge", label: "Brí", aliases: ["irish"] },
+      { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian", "italiano"] },
+      { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese", "日本語"] },
+      { code: "jv", name: "Javanese", native: "Basa Jawa", label: "Tegesé", aliases: ["javanese"] },
+      { code: "kn", name: "Kannada", native: "ಕನ್ನಡ", label: "ಅರ್ಥ", aliases: ["kannada"] },
+      { code: "kk", name: "Kazakh", native: "Қазақша", label: "Мағынасы", aliases: ["kazakh"] },
+      { code: "km", name: "Khmer", native: "ខ្មែរ", label: "អត្ថន័យ", aliases: ["khmer"] },
+      { code: "rw", name: "Kinyarwanda", native: "Kinyarwanda", label: "Ibisobanuro", aliases: ["kinyarwanda"] },
+      { code: "kok", name: "Konkani", native: "कोंकणी", label: "अर्थ", aliases: ["konkani"] },
+      { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean", "한국어"] },
+      { code: "kri", name: "Krio", native: "Krio", label: "Minin", aliases: ["krio"] },
+      { code: "ku", name: "Kurdish (Kurmanji)", native: "Kurdî", label: "Wate", aliases: ["kurmanji"] },
+      { code: "ckb", name: "Kurdish (Sorani)", native: "کوردی", label: "مانا", aliases: ["kurdish", "sorani"] },
+      { code: "ky", name: "Kyrgyz", native: "Кыргызча", label: "Мааниси", aliases: ["kyrgyz"] },
+      { code: "lo", name: "Lao", native: "ລາວ", label: "ຄວາມໝາຍ", aliases: ["lao"] },
+      { code: "la", name: "Latin", native: "Latina", label: "Sensus", aliases: ["latin"] },
+      { code: "lv", name: "Latvian", native: "Latviešu", label: "Nozīme", aliases: ["latvian"] },
+      { code: "ln", name: "Lingala", native: "Lingála", label: "Ndimbola", aliases: ["lingala"] },
+      { code: "lt", name: "Lithuanian", native: "Lietuvių", label: "Reikšmė", aliases: ["lithuanian"] },
+      { code: "lg", name: "Luganda", native: "Luganda", label: "Amakulu", aliases: ["luganda"] },
+      { code: "lb", name: "Luxembourgish", native: "Lëtzebuergesch", label: "Bedeitung", aliases: ["luxembourgish"] },
+      { code: "mk", name: "Macedonian", native: "Македонски", label: "Значење", aliases: ["macedonian"] },
+      { code: "mai", name: "Maithili", native: "मैथिली", label: "अर्थ", aliases: ["maithili"] },
+      { code: "mg", name: "Malagasy", native: "Malagasy", label: "Hevitra", aliases: ["malagasy"] },
+      { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay"] },
+      { code: "ml", name: "Malayalam", native: "മലയാളം", label: "അര്‍ഥം", aliases: ["malayalam"] },
+      { code: "mt", name: "Maltese", native: "Malti", label: "Tifsira", aliases: ["maltese"] },
+      { code: "mi", name: "Maori", native: "Māori", label: "Tikanga", aliases: ["maori"] },
+      { code: "mr", name: "Marathi", native: "मराठी", label: "अर्थ", aliases: ["marathi"] },
+      { code: "mni", name: "Manipuri", native: "মৈতৈলোন্", label: "অর্থ", aliases: ["manipuri", "meitei"] },
+      { code: "mn", name: "Mongolian", native: "Монгол", label: "Утга", aliases: ["mongolian"] },
+      { code: "mo", name: "Moldovan", native: "Moldovenească", label: "Sens", aliases: ["moldovan"] },
+      { code: "nqo", name: "N'Ko", native: "ߒߞߏ", label: "ߞߊ߬ߙߊ߲", aliases: ["nko"] },
+      { code: "nah", name: "Nahuatl", native: "Nāhuatl", label: "Itlahtol", aliases: ["nahuatl"] },
+      { code: "ne", name: "Nepali", native: "नेपाली", label: "अर्थ", aliases: ["nepali", "नेपाली"] },
+      { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian", "norsk"] },
+      { code: "oc", name: "Occitan", native: "Occitan", label: "Significacion", aliases: ["occitan"] },
+      { code: "or", name: "Odia", native: "ଓଡ଼ିଆ", label: "ଅର୍ଥ", aliases: ["odia", "oriya"] },
+      { code: "om", name: "Oromo", native: "Afaan Oromoo", label: "Hiika", aliases: ["oromo"] },
+      { code: "pap", name: "Papiamento", native: "Papiamentu", label: "Signifikado", aliases: ["papiamento"] },
+      { code: "ps", name: "Pashto", native: "پښتو", label: "مانا", aliases: ["pashto"] },
+      { code: "fa", name: "Persian", native: "فارسی", label: "معنی", aliases: ["persian", "farsi", "فارسی"] },
+      { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish", "polski"] },
+      { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese", "português"] },
+      { code: "pa", name: "Punjabi", native: "ਪੰਜਾਬੀ", label: "ਅਰਥ", aliases: ["punjabi", "panjabi"] },
+      { code: "qu", name: "Quechua", native: "Runa Simi", label: "Nisq'a", aliases: ["quechua"] },
+      { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian"] },
+      { code: "rm", name: "Romansh", native: "Rumantsch", label: "Muntada", aliases: ["romansh"] },
+      { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian", "русский"] },
+      { code: "sm", name: "Samoan", native: "Gagana Samoa", label: "Uiga", aliases: ["samoan"] },
+      { code: "sa", name: "Sanskrit", native: "संस्कृतम्", label: "अर्थः", aliases: ["sanskrit"] },
+      { code: "sat", name: "Santali", native: "ᱥᱟᱱᱛᱟᱲᱤ", label: "ᱟᱨᱛ", aliases: ["santali"] },
+      { code: "gd", name: "Scottish Gaelic", native: "Gàidhlig", label: "Ciall", aliases: ["scottish gaelic"] },
+      { code: "sr", name: "Serbian", native: "Српски", label: "Значење", aliases: ["serbian"] },
+      { code: "st", name: "Sesotho", native: "Sesotho", label: "Moelelo", aliases: ["sesotho"] },
+      { code: "sn", name: "Shona", native: "chiShona", label: "Zvinoreva", aliases: ["shona"] },
+      { code: "sd", name: "Sindhi", native: "سنڌي", label: "معنی", aliases: ["sindhi"] },
+      { code: "si", name: "Sinhala", native: "සිංහල", label: "අර්ථය", aliases: ["sinhala"] },
+      { code: "sk", name: "Slovak", native: "Slovenčina", label: "Význam", aliases: ["slovak"] },
+      { code: "sl", name: "Slovenian", native: "Slovenščina", label: "Pomen", aliases: ["slovenian"] },
+      { code: "so", name: "Somali", native: "Soomaali", label: "Macne", aliases: ["somali"] },
+      { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish", "español"] },
+      { code: "su", name: "Sundanese", native: "Basa Sunda", label: "Harti", aliases: ["sundanese"] },
+      { code: "sw", name: "Swahili", native: "Kiswahili", label: "Maana", aliases: ["swahili", "kiswahili"] },
+      { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish", "svenska"] },
+      { code: "tg", name: "Tajik", native: "Тоҷикӣ", label: "Маъно", aliases: ["tajik"] },
+      { code: "ta", name: "Tamil", native: "தமிழ்", label: "பொருள்", aliases: ["tamil"] },
+      { code: "tt", name: "Tatar", native: "Татар", label: "Мәгънә", aliases: ["tatar"] },
+      { code: "te", name: "Telugu", native: "తెలుగు", label: "అర్థం", aliases: ["telugu"] },
+      { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai"] },
+      { code: "bo", name: "Tibetan", native: "བོད་སྐད", label: "དོན", aliases: ["tibetan"] },
+      { code: "ti", name: "Tigrinya", native: "ትግርኛ", label: "ትርጉም", aliases: ["tigrinya"] },
+      { code: "to", name: "Tongan", native: "Lea Faka-Tonga", label: "ʻUhinga", aliases: ["tongan"] },
+      { code: "ts", name: "Tsonga", native: "Xitsonga", label: "Nhlamuselo", aliases: ["tsonga"] },
+      { code: "tn", name: "Tswana", native: "Setswana", label: "Tlhaloso", aliases: ["tswana"] },
+      { code: "tr", name: "Turkish", native: "Türkçe", label: "Türkçe anlam", aliases: ["turkish", "türkçe"] },
+      { code: "tk", name: "Turkmen", native: "Türkmen", label: "Manysy", aliases: ["turkmen"] },
+      { code: "ak", name: "Twi", native: "Twi", label: "Nkyerɛase", aliases: ["twi"] },
+      { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian", "українська"] },
+      { code: "ur", name: "Urdu", native: "اردو", label: "اردو معنی", aliases: ["urdu", "اردو"] },
+      { code: "ug", name: "Uyghur", native: "ئۇيغۇرچە", label: "مەنىسى", aliases: ["uyghur", "uighur"] },
+      { code: "uz", name: "Uzbek", native: "Oʻzbek", label: "Ma'nosi", aliases: ["uzbek"] },
+      { code: "ve", name: "Venda", native: "Tshivenda", label: "Ṱhalutshedzo", aliases: ["venda"] },
+      { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese", "tiếng việt"] },
+      { code: "cy", name: "Welsh", native: "Cymraeg", label: "Ystyr", aliases: ["welsh"] },
+      { code: "wo", name: "Wolof", native: "Wolof", label: "Tekki", aliases: ["wolof"] },
+      { code: "xh", name: "Xhosa", native: "isiXhosa", label: "Intsingiselo", aliases: ["xhosa"] },
+      { code: "yi", name: "Yiddish", native: "ייִדיש", label: "באַדייט", aliases: ["yiddish"] },
+      { code: "yo", name: "Yorùbá", native: "Yorùbá", label: "Itumọ", aliases: ["yoruba"] },
+      { code: "zu", name: "Zulu", native: "isiZulu", label: "Incazelo", aliases: ["zulu"] }
+    ].sort((a, b) => a.name.localeCompare(b.name));
 
     let currentUserLanguage = null;
     let pendingGenerateAfterLanguageChoice = false;
@@ -506,32 +648,8 @@
       "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
     ]);
 
-    // Safe no-op fallbacks so commenting the marked pronunciation block will not break the app.
     let pronunciationAudio = null;
-    function extractPronunciationData() {
-      return {
-        pronunciationText: "",
-        pronunciationAudioUS: "",
-        pronunciationAudioUK: ""
-      };
-    }
-    async function playWordPronunciation() {}
-    function stopWordPronunciation() {
-      try {
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-      } catch {}
-      try {
-        if (pronunciationAudio) {
-          pronunciationAudio.pause();
-          pronunciationAudio.currentTime = 0;
-        }
-      } catch {}
-    }
 
-    /* =========================
-       PRONUNCIATION FEATURE START
-       You can comment this whole block if you want.
-       ========================= */
     function buildMerriamAudioURL(audioFile) {
       if (!audioFile) return "";
       let subdirectory = audioFile[0];
@@ -600,9 +718,18 @@
         window.speechSynthesis.speak(utter);
       }
     }
-    /* =======================
-       PRONUNCIATION FEATURE END
-       ======================= */
+
+    function stopWordPronunciation() {
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch {}
+      try {
+        if (pronunciationAudio) {
+          pronunciationAudio.pause();
+          pronunciationAudio.currentTime = 0;
+        }
+      } catch {}
+    }
 
     function getUserLanguage() {
       const code = localStorage.getItem(USER_LANGUAGE_KEY);
@@ -672,8 +799,18 @@
       container.innerHTML = '';
 
       const filtered = LANGUAGE_OPTIONS.filter(lang => {
-        const hay = [lang.code, lang.name, lang.native, ...(lang.aliases || [])].join(' ').toLowerCase();
-        return !q || hay.includes(q);
+        const hay = [
+          lang.code,
+          lang.name,
+          lang.native,
+          lang.label,
+          ...(lang.aliases || [])
+        ].join(' ').toLowerCase();
+
+        const compactQ = q.replace(/\s+/g, '');
+        const compactHay = hay.replace(/\s+/g, '');
+
+        return !q || hay.includes(q) || compactHay.includes(compactQ);
       });
 
       if (!filtered.length) {
@@ -732,16 +869,16 @@
       if (irregulars[word]) return irregulars[word];
       if (word.endsWith('ies')) return word.slice(0,-3)+'y';
       if (word.endsWith('ves')) return word.slice(0,-3)+'f';
-      if (word.endsWith('es')) return word.slice(0,-2);
-      if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0,-1);
-      if (word.endsWith('ing')) {
+      if (word.endsWith('es') && word.length > 4) return word.slice(0,-2);
+      if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0,-1);
+      if (word.endsWith('ing') && word.length > 5) {
         let b = word.slice(0,-3);
         if (b.length > 3 && b[b.length-1] === b[b.length-2]) b = b.slice(0,-1);
         return b || word;
       }
-      if (word.endsWith('ed')) {
+      if (word.endsWith('ed') && word.length > 4) {
         let b = word.slice(0,-2);
-        if (b.endsWith('e')) b = b.slice(0,-1);
+        if (b.endsWith('i')) b = b.slice(0,-1) + 'y';
         return b || word;
       }
       return word;
@@ -764,13 +901,49 @@
 
     function isMostlyNative(text, langCode) {
       if (!text) return false;
-      if (langCode === 'bn') {
-        const banglaChars = (text.match(/[\u0980-\u09FF]/g) || []).length;
-        const devanagariChars = (text.match(/[\u0900-\u097F]/g) || []).length;
-        if (devanagariChars > 0) return false;
-        return banglaChars > 0;
-      }
-      return text.trim().length > 0;
+      const t = String(text).trim();
+      if (!t) return false;
+
+      const scriptChecks = {
+        bn: /[\u0980-\u09FF]/,
+        hi: /[\u0900-\u097F]/,
+        mr: /[\u0900-\u097F]/,
+        ne: /[\u0900-\u097F]/,
+        sa: /[\u0900-\u097F]/,
+        gu: /[\u0A80-\u0AFF]/,
+        pa: /[\u0A00-\u0A7F]/,
+        ta: /[\u0B80-\u0BFF]/,
+        te: /[\u0C00-\u0C7F]/,
+        kn: /[\u0C80-\u0CFF]/,
+        ml: /[\u0D00-\u0D7F]/,
+        or: /[\u0B00-\u0B7F]/,
+        as: /[\u0980-\u09FF]/,
+        ar: /[\u0600-\u06FF]/,
+        fa: /[\u0600-\u06FF]/,
+        ur: /[\u0600-\u06FF]/,
+        ps: /[\u0600-\u06FF]/,
+        he: /[\u0590-\u05FF]/,
+        ru: /[\u0400-\u04FF]/,
+        uk: /[\u0400-\u04FF]/,
+        bg: /[\u0400-\u04FF]/,
+        sr: /[\u0400-\u04FF]/,
+        mk: /[\u0400-\u04FF]/,
+        el: /[\u0370-\u03FF]/,
+        zh: /[\u4E00-\u9FFF]/,
+        "zh-CN": /[\u4E00-\u9FFF]/,
+        "zh-TW": /[\u4E00-\u9FFF]/,
+        ja: /[\u3040-\u30FF\u4E00-\u9FFF]/,
+        ko: /[\uAC00-\uD7AF]/,
+        th: /[\u0E00-\u0E7F]/,
+        my: /[\u1000-\u109F]/,
+        km: /[\u1780-\u17FF]/,
+        lo: /[\u0E80-\u0EFF]/,
+        si: /[\u0D80-\u0DFF]/
+      };
+
+      const regex = scriptChecks[langCode];
+      if (regex) return regex.test(t);
+      return t.length > 0;
     }
 
     function normalizeDefinition(text) {
@@ -810,6 +983,100 @@
       };
       if (simpleMap[w]) return simpleMap[w];
       return `easy English meaning not available yet for "${w}"`;
+    }
+
+    function normalizeLangCodeForApis(code) {
+      if (!code) return "bn";
+
+      const map = {
+        "zh-CN": "zh-CN",
+        "zh-TW": "zh-TW",
+        "tl": "tl",
+        "no": "no",
+        "ckb": "ku",
+        "prs": "fa",
+        "mo": "ro"
+      };
+
+      return map[code] || code;
+    }
+
+    function withTimeout(promise, timeoutMs = 7000) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), timeoutMs))
+      ]);
+    }
+
+    async function translateViaGoogleApi(text, sourceLang = "en", targetLang = "bn") {
+      const endpoint = TRANSLATION_CONFIG.googleEndpoint?.trim();
+      if (!endpoint) return "";
+
+      try {
+        const response = await withTimeout(fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            text,
+            source: sourceLang,
+            target: targetLang
+          })
+        }), TRANSLATION_CONFIG.googleTimeoutMs);
+
+        if (!response.ok) return "";
+
+        const data = await response.json();
+        const translated =
+          data?.translatedText ||
+          data?.translation ||
+          data?.data?.translatedText ||
+          "";
+
+        return String(translated || "").trim();
+      } catch {
+        return "";
+      }
+    }
+
+    async function translateViaMyMemory(text, sourceLang = "en", targetLang = "bn") {
+      try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(sourceLang)}|${encodeURIComponent(targetLang)}`;
+        const response = await withTimeout(fetch(url), TRANSLATION_CONFIG.myMemoryTimeoutMs);
+        if (!response.ok) return "";
+
+        const data = await response.json();
+        const translated = data?.responseData?.translatedText?.trim() || "";
+
+        if (!translated) return "";
+        return translated;
+      } catch {
+        return "";
+      }
+    }
+
+    async function translateEnglishToUserLanguage(text) {
+      const userCode = normalizeLangCodeForApis(currentUserLanguage?.code || "bn");
+      const sourceCode = "en";
+
+      if (!text || !String(text).trim()) return "";
+
+      let translated = "";
+
+      if (TRANSLATION_CONFIG.useGoogleFirst) {
+        translated = await translateViaGoogleApi(text, sourceCode, userCode);
+        if (translated && isMostlyNative(translated, currentUserLanguage?.code || userCode)) {
+          return translated;
+        }
+      }
+
+      translated = await translateViaMyMemory(text, sourceCode, userCode);
+      if (translated && isMostlyNative(translated, currentUserLanguage?.code || userCode)) {
+        return translated;
+      }
+
+      return "";
     }
 
     function showToast(msg) {
@@ -1009,17 +1276,16 @@
       };
     }
 
-    async function fetchNativeMeaningFallback(word) {
-      const userCode = currentUserLanguage?.code || "bn";
-      try {
-        const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|${encodeURIComponent(userCode)}`);
-        const d = await r.json();
-        const translated = d?.responseData?.translatedText?.trim() || "";
-        if (!translated || !isMostlyNative(translated, userCode)) return "";
-        return translated;
-      } catch {
-        return "";
+    async function fetchNativeMeaningFallback(word, englishMeaning = "") {
+      const firstTry = await translateEnglishToUserLanguage(word);
+      if (firstTry) return firstTry;
+
+      if (englishMeaning) {
+        const secondTry = await translateEnglishToUserLanguage(englishMeaning);
+        if (secondTry) return secondTry;
       }
+
+      return "";
     }
 
     async function getDictionaryData(word) {
@@ -1040,9 +1306,9 @@
         nativeMeaning: primary?.nativeMeaning || secondary?.nativeMeaning || ""
       };
 
-      if (!merged.nativeMeaning) merged.nativeMeaning = await fetchNativeMeaningFallback(word);
-      if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
       if (!merged.meaning) merged.meaning = makeEasyMeaningFallback(word);
+      if (!merged.nativeMeaning) merged.nativeMeaning = await fetchNativeMeaningFallback(word, merged.meaning);
+      if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
 
       const pronunciation = extractPronunciationData(freeResult?.raw, merriamResult?.raw);
 
@@ -1803,9 +2069,6 @@
       showDesktopTipOnce();
       rebuildStudyQueue();
     }
-
-    function nextServerCard() {}
-    function prevServerCard() {}
 
     function finishServerStudy() {
       document.getElementById('server-study-screen').classList.add('hidden');
