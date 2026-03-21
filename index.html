@@ -179,7 +179,7 @@
 </head>
 <body class="tail-container bg-slate-950 text-slate-200 min-h-screen">
   <!-- LANGUAGE GATE -->
-  <div id="language-gate" class="fixed inset-0 z-[10000] bg-slate-950 hidden items-center justify-center p-4">
+  <div id="language-gate" class="fixed inset-0 z-[10000] bg-slate-950 flex items-center justify-center p-4">
     <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
       <div class="p-8 border-b border-slate-800">
         <h1 class="title-font text-4xl font-semibold tracking-tighter text-white mb-2">Welcome</h1>
@@ -200,45 +200,7 @@
     </div>
   </div>
 
-
-  <!-- AUTH MODAL -->
-  <div id="auth-modal" class="fixed inset-0 z-[10001] hidden items-center justify-center bg-black/70 p-4">
-    <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
-      <div class="p-6 border-b border-slate-800 flex items-center justify-between">
-        <div>
-          <h2 class="title-font text-3xl text-white">Login</h2>
-          <p class="text-slate-400 text-sm mt-1">Email/Password or Google দিয়ে sign in করো</p>
-        </div>
-        <button id="auth-close-btn" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700">✕</button>
-      </div>
-      <div class="p-6 space-y-4">
-        <div id="auth-message" class="hidden text-sm rounded-2xl px-4 py-3"></div>
-
-        <div>
-          <label class="block text-slate-400 text-sm mb-2">Email</label>
-          <input id="auth-email" type="email" class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500" placeholder="name@gmail.com">
-        </div>
-
-        <div>
-          <label class="block text-slate-400 text-sm mb-2">Password</label>
-          <input id="auth-password" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500" placeholder="Minimum 6 characters">
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <button id="auth-email-login-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl px-4 py-3 font-semibold transition">Login</button>
-          <button id="auth-register-btn" class="bg-sky-600 hover:bg-sky-500 text-white rounded-2xl px-4 py-3 font-semibold transition">Register</button>
-        </div>
-
-        <button id="auth-google-btn" class="w-full bg-white hover:bg-slate-100 text-slate-900 rounded-2xl px-4 py-3 font-semibold transition">Google দিয়ে চালাও</button>
-
-        <p class="text-xs text-slate-500 leading-relaxed">
-          Register করলে verification email যাবে। Email verify না করা পর্যন্ত email/password login complete হবে না।
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div class="max-w-3xl mx-auto p-6" id="app-shell">
+  <div class="max-w-3xl mx-auto p-6 hidden" id="app-shell">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
@@ -255,10 +217,9 @@
           class="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 transition px-5 py-2 rounded-2xl text-sm font-medium">
           🗄️ My Server (<span id="server-count">0</span>)
         </button>
-        <div class="flex items-center gap-2">
-          <div id="auth-user-pill" class="hidden text-xs bg-slate-900 px-3 py-2 rounded-full border border-slate-700 text-slate-300 max-w-[220px] truncate"></div>
-          <button id="auth-open-btn" class="text-xs bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-full border border-slate-700 font-mono transition">LOGIN</button>
-          <button id="auth-logout-btn" class="hidden text-xs bg-rose-700 hover:bg-rose-600 px-4 py-2 rounded-full border border-rose-500 font-mono transition">LOG OUT</button>
+        <div class="flex items-center gap-2 text-xs bg-slate-900 px-3 py-1.5 rounded-full border border-slate-700">
+          <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+          <span class="font-mono">FULL MODE</span>
         </div>
       </div>
     </div>
@@ -473,29 +434,7 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import {
-      getAuth,
-      GoogleAuthProvider,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      signInWithPopup,
-      sendEmailVerification,
-      signOut,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc,
-      getDoc,
-      collection,
-      getDocs,
-      writeBatch,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-
+  <script>
     const MERRIAM_API_KEY = "";
     const MERRIAM_ENDPOINT = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/";
     const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
@@ -538,247 +477,6 @@
     ];
 
     let currentUserLanguage = null;
-    let pendingGenerateAfterLanguageChoice = false;
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCIFqpK97vCM1j94ZxLUeiRsVe3TZM0L6Y",
-      authDomain: "vucab-55df8.firebaseapp.com",
-      projectId: "vucab-55df8",
-      storageBucket: "vucab-55df8.firebasestorage.app",
-      messagingSenderId: "169714717805",
-      appId: "1:169714717805:web:66b165e5111b4344d79b64",
-      measurementId: "G-KQEZJT0DDG"
-    };
-
-    const firebaseApp = initializeApp(firebaseConfig);
-    const auth = getAuth(firebaseApp);
-    const db = getFirestore(firebaseApp);
-    const googleProvider = new GoogleAuthProvider();
-    let currentFirebaseUser = null;
-    let cloudSyncTimer = null;
-    let isCloudLoading = false;
-
-    function showAuthMessage(message, type = 'info') {
-      const box = document.getElementById('auth-message');
-      if (!box) return;
-      box.classList.remove('hidden', 'bg-emerald-900/40', 'border-emerald-700', 'text-emerald-200', 'bg-rose-900/40', 'border-rose-700', 'text-rose-200', 'bg-sky-900/40', 'border-sky-700', 'text-sky-200');
-      if (type === 'error') box.classList.add('bg-rose-900/40', 'border', 'border-rose-700', 'text-rose-200');
-      else if (type === 'success') box.classList.add('bg-emerald-900/40', 'border', 'border-emerald-700', 'text-emerald-200');
-      else box.classList.add('bg-sky-900/40', 'border', 'border-sky-700', 'text-sky-200');
-      box.textContent = message;
-    }
-
-    function openAuthModal() {
-      document.getElementById('auth-modal').classList.remove('hidden');
-      document.getElementById('auth-modal').classList.add('flex');
-    }
-
-    function closeAuthModal() {
-      document.getElementById('auth-modal').classList.add('hidden');
-      document.getElementById('auth-modal').classList.remove('flex');
-    }
-
-    function getSavedWordsStorageKey() {
-      return 'ankiSavedWords';
-    }
-
-    function sanitizeWordForDocId(word) {
-      return String(word || '').trim().toLowerCase().replace(/\//g, '_');
-    }
-
-    function serializeWordForCloud(word) {
-      return {
-        front: word.front || '',
-        back: word.back || '',
-        sourceMeaning: word.sourceMeaning || word.back || '',
-        userMeaning: word.back || '',
-        interval: Number(word.interval || 0),
-        due: Number(word.due || Date.now()),
-        easyStreak: Number(word.easyStreak || 0),
-        permanentlyKnown: !!word.permanentlyKnown,
-        accent: word.accent || 'us',
-        pronunciationText: word.pronunciationText || '',
-        pronunciationAudioUS: word.pronunciationAudioUS || '',
-        pronunciationAudioUK: word.pronunciationAudioUK || '',
-        partOfSpeech: word.partOfSpeech || '',
-        synonyms: dedupeStrings(word.synonyms || []),
-        antonyms: dedupeStrings(word.antonyms || []),
-        examples: word.examples || { easy: '', medium: '', hard: '' },
-        dictionaryWordRef: sanitizeWordForDocId(word.front),
-        updatedAt: serverTimestamp()
-      };
-    }
-
-    async function syncOneWordToSharedDictionary(word) {
-      if (!currentFirebaseUser || !word?.front) return;
-      const ref = doc(db, 'words', sanitizeWordForDocId(word.front));
-      const meaning = String(word.back || '').trim();
-      const payload = {
-        word: String(word.front || '').trim(),
-        meaning: meaning,
-        partOfSpeech: word.partOfSpeech || '',
-        synonyms: dedupeStrings(word.synonyms || []),
-        antonyms: dedupeStrings(word.antonyms || []),
-        examples: word.examples || { easy: '', medium: '', hard: '' },
-        pronunciationText: word.pronunciationText || '',
-        pronunciationAudioUS: word.pronunciationAudioUS || '',
-        pronunciationAudioUK: word.pronunciationAudioUK || '',
-        updatedAt: serverTimestamp(),
-        lastEditedBy: currentFirebaseUser.uid
-      };
-      if (meaning) {
-        payload.nativeMeanings = { [currentUserLanguage || 'bn']: meaning };
-        payload.communityMeanings = [{ text: meaning, lang: currentUserLanguage || 'bn', by: currentFirebaseUser.uid }];
-      }
-      await setDoc(ref, payload, { merge: true });
-    }
-
-    async function syncSavedWordsToCloud() {
-      if (!currentFirebaseUser || isCloudLoading) return;
-      try {
-        const batch = writeBatch(db);
-        const userRef = doc(db, 'users', currentFirebaseUser.uid);
-        batch.set(userRef, {
-          email: currentFirebaseUser.email || '',
-          displayName: currentFirebaseUser.displayName || '',
-          preferredLanguage: currentUserLanguage || 'bn',
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        for (const word of savedWords) {
-          if (!word?.front) continue;
-          const wordId = sanitizeWordForDocId(word.front);
-          batch.set(doc(db, 'users', currentFirebaseUser.uid, 'savedWords', wordId), serializeWordForCloud(word), { merge: true });
-        }
-        await batch.commit();
-
-        for (const word of savedWords) {
-          await syncOneWordToSharedDictionary(word);
-        }
-      } catch (err) {
-        console.error('Cloud sync failed:', err);
-      }
-    }
-
-    function queueCloudSync() {
-      if (!currentFirebaseUser) return;
-      clearTimeout(cloudSyncTimer);
-      cloudSyncTimer = setTimeout(syncSavedWordsToCloud, 800);
-    }
-
-    async function loadSavedWordsFromCloud(user) {
-      if (!user) return;
-      isCloudLoading = true;
-      try {
-        const localWords = [...savedWords];
-        const snap = await getDocs(collection(db, 'users', user.uid, 'savedWords'));
-        const cloudWords = snap.docs.map(d => ({
-          interval: 0,
-          due: Date.now(),
-          easyStreak: 0,
-          permanentlyKnown: false,
-          editingMeaning: false,
-          accent: 'us',
-          pronunciationText: '',
-          pronunciationAudioUS: '',
-          pronunciationAudioUK: '',
-          ...d.data()
-        }));
-
-        const merged = new Map();
-        [...cloudWords, ...localWords].forEach(w => {
-          if (!w?.front) return;
-          const key = sanitizeWordForDocId(w.front);
-          const prev = merged.get(key);
-          if (!prev || Number(w.due || 0) > Number(prev.due || 0) || Number(w.easyStreak || 0) > Number(prev.easyStreak || 0)) {
-            merged.set(key, { ...prev, ...w, editingMeaning: false });
-          } else {
-            merged.set(key, { ...w, ...prev, editingMeaning: false });
-          }
-        });
-        savedWords = Array.from(merged.values());
-        localStorage.setItem(getSavedWordsStorageKey(), JSON.stringify(savedWords));
-        updateServerCount();
-        updateKnownCounts();
-        queueCloudSync();
-      } catch (err) {
-        console.error('Could not load cloud words:', err);
-      } finally {
-        isCloudLoading = false;
-      }
-    }
-
-    function bindAuthUI() {
-      document.getElementById('auth-open-btn').addEventListener('click', openAuthModal);
-      document.getElementById('auth-close-btn').addEventListener('click', closeAuthModal);
-      document.getElementById('auth-logout-btn').addEventListener('click', async () => {
-        await signOut(auth);
-        showToast('Logged out');
-      });
-
-      document.getElementById('auth-register-btn').addEventListener('click', async () => {
-        const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value;
-        if (!email || password.length < 6) {
-          showAuthMessage('Valid email এবং minimum 6 character password দাও।', 'error');
-          return;
-        }
-        try {
-          const cred = await createUserWithEmailAndPassword(auth, email, password);
-          await sendEmailVerification(cred.user);
-          await signOut(auth);
-          showAuthMessage('Verification email পাঠানো হয়েছে। Email verify করে তারপর login করো।', 'success');
-        } catch (err) {
-          showAuthMessage(err.message, 'error');
-        }
-      });
-
-      document.getElementById('auth-email-login-btn').addEventListener('click', async () => {
-        const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value;
-        try {
-          const cred = await signInWithEmailAndPassword(auth, email, password);
-          if (!cred.user.emailVerified) {
-            await signOut(auth);
-            showAuthMessage('আগে verification email confirm করো।', 'error');
-            return;
-          }
-          closeAuthModal();
-          showToast('Login successful');
-        } catch (err) {
-          showAuthMessage(err.message, 'error');
-        }
-      });
-
-      document.getElementById('auth-google-btn').addEventListener('click', async () => {
-        try {
-          await signInWithPopup(auth, googleProvider);
-          closeAuthModal();
-          showToast('Google login successful');
-        } catch (err) {
-          showAuthMessage(err.message, 'error');
-        }
-      });
-
-      onAuthStateChanged(auth, async (user) => {
-        currentFirebaseUser = user || null;
-        const openBtn = document.getElementById('auth-open-btn');
-        const logoutBtn = document.getElementById('auth-logout-btn');
-        const pill = document.getElementById('auth-user-pill');
-        if (user) {
-          openBtn.classList.add('hidden');
-          logoutBtn.classList.remove('hidden');
-          pill.classList.remove('hidden');
-          pill.textContent = user.displayName || user.email || 'Logged in';
-          await loadSavedWordsFromCloud(user);
-        } else {
-          openBtn.classList.remove('hidden');
-          logoutBtn.classList.add('hidden');
-          pill.classList.add('hidden');
-          pill.textContent = '';
-        }
-      });
-    }
 
     let cards = [];
     let currentIndex = 0;
@@ -788,7 +486,7 @@
     let serverStudyIndex = 0;
     let serverIsFlipped = false;
 
-    let savedWords = JSON.parse(localStorage.getItem(getSavedWordsStorageKey())) || [];
+    let savedWords = JSON.parse(localStorage.getItem('ankiSavedWords')) || [];
     savedWords = savedWords.map(w => ({
       interval: 0,
       due: Date.now(),
@@ -801,7 +499,7 @@
       pronunciationAudioUK: w.pronunciationAudioUK || '',
       ...w
     }));
-    localStorage.setItem(getSavedWordsStorageKey(), JSON.stringify(savedWords));
+    localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
 
     const commonEasyWords = new Set([
       "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
@@ -914,58 +612,36 @@
       localStorage.setItem(USER_LANGUAGE_KEY, code);
       currentUserLanguage = getUserLanguage();
       applyUserLanguageToUI();
-      closeLanguageGate();
-      queueCloudSync();
-
-      if (pendingGenerateAfterLanguageChoice) {
-        pendingGenerateAfterLanguageChoice = false;
-        generateFlashcards();
-      }
+      document.getElementById('language-gate').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
     }
 
     function applyUserLanguageToUI() {
       currentUserLanguage = getUserLanguage();
       const header = document.getElementById('header-first-language');
-      if (!header) return;
-      header.textContent = currentUserLanguage ? currentUserLanguage.native : "Choose language on Generate";
+      if (header && currentUserLanguage) header.textContent = currentUserLanguage.native;
     }
 
     function getMeaningLabel() {
       return currentUserLanguage?.label || "Meaning";
     }
 
-    function openLanguageGate(afterSelectGenerate = false) {
-      if (afterSelectGenerate) pendingGenerateAfterLanguageChoice = true;
-      renderLanguageList("");
-      const searchInput = document.getElementById('language-search');
-      if (searchInput) {
-        searchInput.value = "";
-        setTimeout(() => searchInput.focus(), 0);
-      }
-      const gate = document.getElementById('language-gate');
-      gate.classList.remove('hidden');
-      gate.classList.add('flex');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeLanguageGate() {
-      const gate = document.getElementById('language-gate');
-      gate.classList.add('hidden');
-      gate.classList.remove('flex');
-      document.body.style.overflow = '';
-    }
-
     function initLanguageGate() {
       currentUserLanguage = getUserLanguage();
-      applyUserLanguageToUI();
+      if (currentUserLanguage) {
+        applyUserLanguageToUI();
+        document.getElementById('language-gate').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+        return;
+      }
 
       renderLanguageList("");
       document.getElementById('language-search').addEventListener('input', e => {
         renderLanguageList(e.target.value || "");
       });
 
-      closeLanguageGate();
-      document.getElementById('app-shell').classList.remove('hidden');
+      document.getElementById('language-gate').classList.remove('hidden');
+      document.getElementById('app-shell').classList.add('hidden');
     }
 
     function renderLanguageList(query) {
@@ -997,10 +673,9 @@
     }
 
     function persistSavedWords() {
-      localStorage.setItem(getSavedWordsStorageKey(), JSON.stringify(savedWords));
+      localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
       updateServerCount();
       updateKnownCounts();
-      queueCloudSync();
     }
 
     function isDesktop() {
@@ -1372,11 +1047,7 @@
     }
 
     async function generateFlashcards() {
-      if (!currentUserLanguage) {
-        openLanguageGate(true);
-        return;
-      }
-
+      if (!currentUserLanguage) return;
       const passage = document.getElementById('passage').value.trim();
       if (!passage) return alert("Paste a passage first!");
 
@@ -2154,7 +1825,6 @@
 
     window.onload = () => {
       initLanguageGate();
-      bindAuthUI();
       updateServerCount();
       updateKnownCounts();
     };
