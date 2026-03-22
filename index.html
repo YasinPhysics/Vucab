@@ -434,739 +434,696 @@
     </div>
   </div>
 
-  <script>
-    const MERRIAM_API_KEY = "";
-    const MERRIAM_ENDPOINT = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/";
-    const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
-    const USER_LANGUAGE_KEY = "ankiUserFirstLanguage";
-    const SHORTCUT_TIP_KEY = "ankiShortcutTipShown";
+<script>
+  const MERRIAM_API_KEY = "1225d311-9d7b-41dd-982a-74a392622c8d";
+  const MERRIAM_ENDPOINT = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/";
+  const FREE_DICT_ENDPOINT = "https://freedictionaryapi.com/api/v1/entries/";
+  const USER_LANGUAGE_KEY = "ankiUserFirstLanguage";
+  const SHORTCUT_TIP_KEY = "ankiShortcutTipShown";
 
-    /*
-      Google Translate নিরাপদভাবে ব্যবহার করতে backend দরকার।
-      পরে এখানে endpoint বসাবে, যেমন:
-      googleEndpoint: "/api/translate"
+  const TRANSLATION_CONFIG = {
+    googleEndpoint: "",
+    useGoogleFirst: true,
+    googleTimeoutMs: 7000,
+    myMemoryTimeoutMs: 7000
+  };
 
-      backend request body:
-      {
-        text: "find",
-        source: "en",
-        target: "bn"
-      }
+  const LANGUAGE_OPTIONS = [
+    { code: "af", name: "Afrikaans", native: "Afrikaans", label: "Betekenis", aliases: ["afrikaans"] },
+    { code: "sq", name: "Albanian", native: "Shqip", label: "Kuptimi", aliases: ["albanian"] },
+    { code: "am", name: "Amharic", native: "አማርኛ", label: "ትርጉም", aliases: ["amharic"] },
+    { code: "ar", name: "Arabic", native: "العربية", label: "المعنى", aliases: ["arabic", "العربية"] },
+    { code: "hy", name: "Armenian", native: "Հայերեն", label: "Իմաստ", aliases: ["armenian"] },
+    { code: "as", name: "Assamese", native: "অসমীয়া", label: "অৰ্থ", aliases: ["assamese"] },
+    { code: "ay", name: "Aymara", native: "Aymar aru", label: "Saña", aliases: ["aymara"] },
+    { code: "az", name: "Azerbaijani", native: "Azərbaycanca", label: "Məna", aliases: ["azerbaijani"] },
+    { code: "bm", name: "Bambara", native: "Bamanankan", label: "Kɔrɔ", aliases: ["bambara"] },
+    { code: "eu", name: "Basque", native: "Euskara", label: "Esanahia", aliases: ["basque"] },
+    { code: "be", name: "Belarusian", native: "Беларуская", label: "Значэнне", aliases: ["belarusian"] },
+    { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
+    { code: "bho", name: "Bhojpuri", native: "भोजपुरी", label: "अर्थ", aliases: ["bhojpuri"] },
+    { code: "bs", name: "Bosnian", native: "Bosanski", label: "Značenje", aliases: ["bosnian"] },
+    { code: "br", name: "Breton", native: "Brezhoneg", label: "Talvoudegezh", aliases: ["breton"] },
+    { code: "bg", name: "Bulgarian", native: "Български", label: "Значение", aliases: ["bulgarian"] },
+    { code: "my", name: "Burmese", native: "မြန်မာ", label: "အဓိပ္ပါယ်", aliases: ["burmese", "myanmar"] },
+    { code: "ca", name: "Catalan", native: "Català", label: "Significat", aliases: ["catalan"] },
+    { code: "ceb", name: "Cebuano", native: "Cebuano", label: "Kahulogan", aliases: ["cebuano"] },
+    { code: "ny", name: "Chichewa", native: "Chichewa", label: "Tanthauzo", aliases: ["chichewa"] },
+    { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin", "中文"] },
+    { code: "zh-CN", name: "Chinese (Simplified)", native: "简体中文", label: "词义", aliases: ["simplified chinese", "简体中文"] },
+    { code: "zh-TW", name: "Chinese (Traditional)", native: "繁體中文", label: "詞義", aliases: ["traditional chinese", "繁體中文"] },
+    { code: "co", name: "Corsican", native: "Corsu", label: "Significatu", aliases: ["corsican"] },
+    { code: "hr", name: "Croatian", native: "Hrvatski", label: "Značenje", aliases: ["croatian"] },
+    { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech", "čeština"] },
+    { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish", "dansk"] },
+    { code: "prs", name: "Dari", native: "دری", label: "معنی", aliases: ["dari"] },
+    { code: "dv", name: "Divehi", native: "ދިވެހި", label: "މާނަ", aliases: ["divehi", "maldivian"] },
+    { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch", "nederlands"] },
+    { code: "dz", name: "Dzongkha", native: "རྫོང་ཁ", label: "དོན", aliases: ["dzongkha"] },
+    { code: "en", name: "English", native: "English", label: "Meaning", aliases: ["english"] },
+    { code: "eo", name: "Esperanto", native: "Esperanto", label: "Signifo", aliases: ["esperanto"] },
+    { code: "et", name: "Estonian", native: "Eesti", label: "Tähendus", aliases: ["estonian"] },
+    { code: "ee", name: "Ewe", native: "Eʋegbe", label: "Gɔmeɖeɖe", aliases: ["ewe"] },
+    { code: "fo", name: "Faroese", native: "Føroyskt", label: "Merking", aliases: ["faroese"] },
+    { code: "fj", name: "Fijian", native: "Vosa Vakaviti", label: "iBalebale", aliases: ["fijian"] },
+    { code: "tl", name: "Filipino", native: "Filipino", label: "Kahulugan", aliases: ["filipino", "tagalog"] },
+    { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish", "suomi"] },
+    { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french", "français"] },
+    { code: "fy", name: "Frisian", native: "Frysk", label: "Betsjutting", aliases: ["frisian"] },
+    { code: "fur", name: "Friulian", native: "Furlan", label: "Significât", aliases: ["friulian"] },
+    { code: "ff", name: "Fulah", native: "Fulfulde", label: "Maana", aliases: ["fulah", "fulfulde"] },
+    { code: "gl", name: "Galician", native: "Galego", label: "Significado", aliases: ["galician"] },
+    { code: "ka", name: "Georgian", native: "ქართული", label: "მნიშვნელობა", aliases: ["georgian"] },
+    { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german", "deutsch"] },
+    { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek", "ελληνικά"] },
+    { code: "gn", name: "Guarani", native: "Avañe'ẽ", label: "He'iséva", aliases: ["guarani"] },
+    { code: "gu", name: "Gujarati", native: "ગુજરાતી", label: "અર્થ", aliases: ["gujarati"] },
+    { code: "ht", name: "Haitian Creole", native: "Kreyòl Ayisyen", label: "Siyifikasyon", aliases: ["haitian creole", "creole"] },
+    { code: "ha", name: "Hausa", native: "Hausa", label: "Ma’ana", aliases: ["hausa"] },
+    { code: "haw", name: "Hawaiian", native: "ʻŌlelo Hawaiʻi", label: "Manaʻo", aliases: ["hawaiian"] },
+    { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew", "עברית"] },
+    { code: "hi", name: "Hindi", native: "हिन्दी", label: "हिंदी अर्थ", aliases: ["hindi", "हिन्दी"] },
+    { code: "hmn", name: "Hmong", native: "Hmoob", label: "Lub ntsiab", aliases: ["hmong"] },
+    { code: "hu", name: "Hungarian", native: "Magyar", label: "Jelentés", aliases: ["hungarian"] },
+    { code: "is", name: "Icelandic", native: "Íslenska", label: "Merking", aliases: ["icelandic"] },
+    { code: "ig", name: "Igbo", native: "Igbo", label: "Pụtara", aliases: ["igbo"] },
+    { code: "ilo", name: "Ilocano", native: "Ilokano", label: "Kahulugan", aliases: ["ilocano"] },
+    { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian", "bahasa indonesia"] },
+    { code: "ga", name: "Irish", native: "Gaeilge", label: "Brí", aliases: ["irish"] },
+    { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian", "italiano"] },
+    { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese", "日本語"] },
+    { code: "jv", name: "Javanese", native: "Basa Jawa", label: "Tegesé", aliases: ["javanese"] },
+    { code: "kn", name: "Kannada", native: "ಕನ್ನಡ", label: "ಅರ್ಥ", aliases: ["kannada"] },
+    { code: "kk", name: "Kazakh", native: "Қазақша", label: "Мағынасы", aliases: ["kazakh"] },
+    { code: "km", name: "Khmer", native: "ខ្មែរ", label: "អត្ថន័យ", aliases: ["khmer"] },
+    { code: "rw", name: "Kinyarwanda", native: "Kinyarwanda", label: "Ibisobanuro", aliases: ["kinyarwanda"] },
+    { code: "kok", name: "Konkani", native: "कोंकणी", label: "अर्थ", aliases: ["konkani"] },
+    { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean", "한국어"] },
+    { code: "kri", name: "Krio", native: "Krio", label: "Minin", aliases: ["krio"] },
+    { code: "ku", name: "Kurdish (Kurmanji)", native: "Kurdî", label: "Wate", aliases: ["kurmanji"] },
+    { code: "ckb", name: "Kurdish (Sorani)", native: "کوردی", label: "مانا", aliases: ["kurdish", "sorani"] },
+    { code: "ky", name: "Kyrgyz", native: "Кыргызча", label: "Мааниси", aliases: ["kyrgyz"] },
+    { code: "lo", name: "Lao", native: "ລາວ", label: "ຄວາມໝາຍ", aliases: ["lao"] },
+    { code: "la", name: "Latin", native: "Latina", label: "Sensus", aliases: ["latin"] },
+    { code: "lv", name: "Latvian", native: "Latviešu", label: "Nozīme", aliases: ["latvian"] },
+    { code: "ln", name: "Lingala", native: "Lingála", label: "Ndimbola", aliases: ["lingala"] },
+    { code: "lt", name: "Lithuanian", native: "Lietuvių", label: "Reikšmė", aliases: ["lithuanian"] },
+    { code: "lg", name: "Luganda", native: "Luganda", label: "Amakulu", aliases: ["luganda"] },
+    { code: "lb", name: "Luxembourgish", native: "Lëtzebuergesch", label: "Bedeitung", aliases: ["luxembourgish"] },
+    { code: "mk", name: "Macedonian", native: "Македонски", label: "Значење", aliases: ["macedonian"] },
+    { code: "mai", name: "Maithili", native: "मैथिली", label: "अर्थ", aliases: ["maithili"] },
+    { code: "mg", name: "Malagasy", native: "Malagasy", label: "Hevitra", aliases: ["malagasy"] },
+    { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay"] },
+    { code: "ml", name: "Malayalam", native: "മലയാളം", label: "അര്‍ഥം", aliases: ["malayalam"] },
+    { code: "mt", name: "Maltese", native: "Malti", label: "Tifsira", aliases: ["maltese"] },
+    { code: "mi", name: "Maori", native: "Māori", label: "Tikanga", aliases: ["maori"] },
+    { code: "mr", name: "Marathi", native: "मराठी", label: "अर्थ", aliases: ["marathi"] },
+    { code: "mni", name: "Manipuri", native: "মৈতৈলোন্", label: "অর্থ", aliases: ["manipuri", "meitei"] },
+    { code: "mn", name: "Mongolian", native: "Монгол", label: "Утга", aliases: ["mongolian"] },
+    { code: "mo", name: "Moldovan", native: "Moldovenească", label: "Sens", aliases: ["moldovan"] },
+    { code: "nqo", name: "N'Ko", native: "ߒߞߏ", label: "ߞߊ߬ߙߊ߲", aliases: ["nko"] },
+    { code: "nah", name: "Nahuatl", native: "Nāhuatl", label: "Itlahtol", aliases: ["nahuatl"] },
+    { code: "ne", name: "Nepali", native: "नेपाली", label: "अर्थ", aliases: ["nepali", "नेपाली"] },
+    { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian", "norsk"] },
+    { code: "oc", name: "Occitan", native: "Occitan", label: "Significacion", aliases: ["occitan"] },
+    { code: "or", name: "Odia", native: "ଓଡ଼ିଆ", label: "ଅର୍ଥ", aliases: ["odia", "oriya"] },
+    { code: "om", name: "Oromo", native: "Afaan Oromoo", label: "Hiika", aliases: ["oromo"] },
+    { code: "pap", name: "Papiamento", native: "Papiamentu", label: "Signifikado", aliases: ["papiamento"] },
+    { code: "ps", name: "Pashto", native: "پښتو", label: "مانا", aliases: ["pashto"] },
+    { code: "fa", name: "Persian", native: "فارسی", label: "معنی", aliases: ["persian", "farsi", "فارسی"] },
+    { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish", "polski"] },
+    { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese", "português"] },
+    { code: "pa", name: "Punjabi", native: "ਪੰਜਾਬੀ", label: "ਅਰথ", aliases: ["punjabi", "panjabi"] },
+    { code: "qu", name: "Quechua", native: "Runa Simi", label: "Nisq'a", aliases: ["quechua"] },
+    { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian"] },
+    { code: "rm", name: "Romansh", native: "Rumantsch", label: "Muntada", aliases: ["romansh"] },
+    { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian", "русский"] },
+    { code: "sm", name: "Samoan", native: "Gagana Samoa", label: "Uiga", aliases: ["samoan"] },
+    { code: "sa", name: "Sanskrit", native: "संस्कृतम्", label: "अर्थः", aliases: ["sanskrit"] },
+    { code: "sat", name: "Santali", native: "ᱥᱟᱱᱛᱟᱲᱤ", label: "ᱟᱨᱛ", aliases: ["santali"] },
+    { code: "gd", name: "Scottish Gaelic", native: "Gàidhlig", label: "Ciall", aliases: ["scottish gaelic"] },
+    { code: "sr", name: "Serbian", native: "Српски", label: "Значење", aliases: ["serbian"] },
+    { code: "st", name: "Sesotho", native: "Sesotho", label: "Moelelo", aliases: ["sesotho"] },
+    { code: "sn", name: "Shona", native: "chiShona", label: "Zvinoreva", aliases: ["shona"] },
+    { code: "sd", name: "Sindhi", native: "سنڌي", label: "معنی", aliases: ["sindhi"] },
+    { code: "si", name: "Sinhala", native: "සිංහල", label: "අර්ථය", aliases: ["sinhala"] },
+    { code: "sk", name: "Slovak", native: "Slovenčina", label: "Význam", aliases: ["slovak"] },
+    { code: "sl", name: "Slovenian", native: "Slovenščina", label: "Pomen", aliases: ["slovenian"] },
+    { code: "so", name: "Somali", native: "Soomaali", label: "Macne", aliases: ["somali"] },
+    { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish", "español"] },
+    { code: "su", name: "Sundanese", native: "Basa Sunda", label: "Harti", aliases: ["sundanese"] },
+    { code: "sw", name: "Swahili", native: "Kiswahili", label: "Maana", aliases: ["swahili", "kiswahili"] },
+    { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish", "svenska"] },
+    { code: "tg", name: "Tajik", native: "Тоҷикӣ", label: "Маъно", aliases: ["tajik"] },
+    { code: "ta", name: "Tamil", native: "தமிழ்", label: "பொருள்", aliases: ["tamil"] },
+    { code: "tt", name: "Tatar", native: "Татар", label: "Мәгънә", aliases: ["tatar"] },
+    { code: "te", name: "Telugu", native: "తెలుగు", label: "అర్థం", aliases: ["telugu"] },
+    { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai"] },
+    { code: "bo", name: "Tibetan", native: "བོད་སྐད", label: "དོན", aliases: ["tibetan"] },
+    { code: "ti", name: "Tigrinya", native: "ትግርኛ", label: "ትርጉም", aliases: ["tigrinya"] },
+    { code: "to", name: "Tongan", native: "Lea Faka-Tonga", label: "ʻUhinga", aliases: ["tongan"] },
+    { code: "ts", name: "Tsonga", native: "Xitsonga", label: "Nhlamuselo", aliases: ["tsonga"] },
+    { code: "tn", name: "Tswana", native: "Setswana", label: "Tlhaloso", aliases: ["tswana"] },
+    { code: "tr", name: "Turkish", native: "Türkçe", label: "Türkçe anlam", aliases: ["turkish", "türkçe"] },
+    { code: "tk", name: "Turkmen", native: "Türkmen", label: "Manysy", aliases: ["turkmen"] },
+    { code: "ak", name: "Twi", native: "Twi", label: "Nkyerɛase", aliases: ["twi"] },
+    { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian", "українська"] },
+    { code: "ur", name: "Urdu", native: "اردو", label: "اردو معنی", aliases: ["urdu", "اردو"] },
+    { code: "ug", name: "Uyghur", native: "ئۇيغۇرچە", label: "مەنىسى", aliases: ["uyghur", "uighur"] },
+    { code: "uz", name: "Uzbek", native: "Oʻzbek", label: "Ma'nosi", aliases: ["uzbek"] },
+    { code: "ve", name: "Venda", native: "Tshivenda", label: "Ṱhalutshedzo", aliases: ["venda"] },
+    { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese", "tiếng việt"] },
+    { code: "cy", name: "Welsh", native: "Cymraeg", label: "Ystyr", aliases: ["welsh"] },
+    { code: "wo", name: "Wolof", native: "Wolof", label: "Tekki", aliases: ["wolof"] },
+    { code: "xh", name: "Xhosa", native: "isiXhosa", label: "Intsingiselo", aliases: ["xhosa"] },
+    { code: "yi", name: "Yiddish", native: "ייִדיש", label: "באַדייט", aliases: ["yiddish"] },
+    { code: "yo", name: "Yorùbá", native: "Yorùbá", label: "Itumọ", aliases: ["yoruba"] },
+    { code: "zu", name: "Zulu", native: "isiZulu", label: "Incazelo", aliases: ["zulu"] }
+  ].sort((a, b) => a.name.localeCompare(b.name));
 
-      backend response ideally:
-      {
-        translatedText: "খুঁজে পাওয়া"
-      }
-    */
-    const TRANSLATION_CONFIG = {
-      googleEndpoint: "",
-      useGoogleFirst: true,
-      googleTimeoutMs: 7000,
-      myMemoryTimeoutMs: 7000
+  let currentUserLanguage = null;
+  let pendingGenerateAfterLanguageChoice = false;
+
+  let cards = [];
+  let currentIndex = 0;
+  let isFlipped = false;
+
+  let serverStudyCards = [];
+  let serverStudyIndex = 0;
+  let serverIsFlipped = false;
+
+  const baseFormCache = new Map();
+  let savedWords = JSON.parse(localStorage.getItem('ankiSavedWords')) || [];
+
+  savedWords = savedWords.map(w => ({
+    interval: 0,
+    due: Date.now(),
+    easyStreak: 0,
+    permanentlyKnown: false,
+    editingMeaning: false,
+    accent: w.accent || 'us',
+    pronunciationText: w.pronunciationText || '',
+    pronunciationAudioUS: w.pronunciationAudioUS || '',
+    pronunciationAudioUK: w.pronunciationAudioUK || '',
+    ...w
+  }));
+
+  localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
+
+  const commonEasyWords = new Set([
+    "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
+  ]);
+
+  let pronunciationAudio = null;
+
+  function buildMerriamAudioURL(audioFile) {
+    if (!audioFile) return "";
+    let subdirectory = audioFile[0];
+    if (/^bix/.test(audioFile)) subdirectory = "bix";
+    else if (/^gg/.test(audioFile)) subdirectory = "gg";
+    else if (/^[0-9]|^_/.test(audioFile)) subdirectory = "number";
+    return `https://media.merriam-webster.com/audio/prons/en/us/mp3/${subdirectory}/${audioFile}.mp3`;
+  }
+
+  function extractPronunciationData(freeData, merriamData) {
+    const result = {
+      pronunciationText: "",
+      pronunciationAudioUS: "",
+      pronunciationAudioUK: ""
     };
 
-    const LANGUAGE_OPTIONS = [
-      { code: "af", name: "Afrikaans", native: "Afrikaans", label: "Betekenis", aliases: ["afrikaans"] },
-      { code: "sq", name: "Albanian", native: "Shqip", label: "Kuptimi", aliases: ["albanian"] },
-      { code: "am", name: "Amharic", native: "አማርኛ", label: "ትርጉም", aliases: ["amharic"] },
-      { code: "ar", name: "Arabic", native: "العربية", label: "المعنى", aliases: ["arabic", "العربية"] },
-      { code: "hy", name: "Armenian", native: "Հայերեն", label: "Իմաստ", aliases: ["armenian"] },
-      { code: "as", name: "Assamese", native: "অসমীয়া", label: "অৰ্থ", aliases: ["assamese"] },
-      { code: "ay", name: "Aymara", native: "Aymar aru", label: "Saña", aliases: ["aymara"] },
-      { code: "az", name: "Azerbaijani", native: "Azərbaycanca", label: "Məna", aliases: ["azerbaijani"] },
-      { code: "bm", name: "Bambara", native: "Bamanankan", label: "Kɔrɔ", aliases: ["bambara"] },
-      { code: "eu", name: "Basque", native: "Euskara", label: "Esanahia", aliases: ["basque"] },
-      { code: "be", name: "Belarusian", native: "Беларуская", label: "Значэнне", aliases: ["belarusian"] },
-      { code: "bn", name: "Bangla", native: "বাংলা", label: "বাংলা অর্থ", aliases: ["bangla", "bengali", "বাংলা"] },
-      { code: "bho", name: "Bhojpuri", native: "भोजपुरी", label: "अर्थ", aliases: ["bhojpuri"] },
-      { code: "bs", name: "Bosnian", native: "Bosanski", label: "Značenje", aliases: ["bosnian"] },
-      { code: "br", name: "Breton", native: "Brezhoneg", label: "Talvoudegezh", aliases: ["breton"] },
-      { code: "bg", name: "Bulgarian", native: "Български", label: "Значение", aliases: ["bulgarian"] },
-      { code: "my", name: "Burmese", native: "မြန်မာ", label: "အဓိပ္ပါယ်", aliases: ["burmese", "myanmar"] },
-      { code: "ca", name: "Catalan", native: "Català", label: "Significat", aliases: ["catalan"] },
-      { code: "ceb", name: "Cebuano", native: "Cebuano", label: "Kahulogan", aliases: ["cebuano"] },
-      { code: "ny", name: "Chichewa", native: "Chichewa", label: "Tanthauzo", aliases: ["chichewa"] },
-      { code: "zh", name: "Chinese", native: "中文", label: "词义", aliases: ["chinese", "mandarin", "中文"] },
-      { code: "zh-CN", name: "Chinese (Simplified)", native: "简体中文", label: "词义", aliases: ["simplified chinese", "简体中文"] },
-      { code: "zh-TW", name: "Chinese (Traditional)", native: "繁體中文", label: "詞義", aliases: ["traditional chinese", "繁體中文"] },
-      { code: "co", name: "Corsican", native: "Corsu", label: "Significatu", aliases: ["corsican"] },
-      { code: "hr", name: "Croatian", native: "Hrvatski", label: "Značenje", aliases: ["croatian"] },
-      { code: "cs", name: "Czech", native: "Čeština", label: "Význam", aliases: ["czech", "čeština"] },
-      { code: "da", name: "Danish", native: "Dansk", label: "Betydning", aliases: ["danish", "dansk"] },
-      { code: "prs", name: "Dari", native: "دری", label: "معنی", aliases: ["dari"] },
-      { code: "dv", name: "Divehi", native: "ދިވެހި", label: "މާނަ", aliases: ["divehi", "maldivian"] },
-      { code: "nl", name: "Dutch", native: "Nederlands", label: "Betekenis", aliases: ["dutch", "nederlands"] },
-      { code: "dz", name: "Dzongkha", native: "རྫོང་ཁ", label: "དོན", aliases: ["dzongkha"] },
-      { code: "en", name: "English", native: "English", label: "Meaning", aliases: ["english"] },
-      { code: "eo", name: "Esperanto", native: "Esperanto", label: "Signifo", aliases: ["esperanto"] },
-      { code: "et", name: "Estonian", native: "Eesti", label: "Tähendus", aliases: ["estonian"] },
-      { code: "ee", name: "Ewe", native: "Eʋegbe", label: "Gɔmeɖeɖe", aliases: ["ewe"] },
-      { code: "fo", name: "Faroese", native: "Føroyskt", label: "Merking", aliases: ["faroese"] },
-      { code: "fj", name: "Fijian", native: "Vosa Vakaviti", label: "iBalebale", aliases: ["fijian"] },
-      { code: "tl", name: "Filipino", native: "Filipino", label: "Kahulugan", aliases: ["filipino", "tagalog"] },
-      { code: "fi", name: "Finnish", native: "Suomi", label: "Merkitys", aliases: ["finnish", "suomi"] },
-      { code: "fr", name: "French", native: "Français", label: "Sens", aliases: ["french", "français"] },
-      { code: "fy", name: "Frisian", native: "Frysk", label: "Betsjutting", aliases: ["frisian"] },
-      { code: "fur", name: "Friulian", native: "Furlan", label: "Significât", aliases: ["friulian"] },
-      { code: "ff", name: "Fulah", native: "Fulfulde", label: "Maana", aliases: ["fulah", "fulfulde"] },
-      { code: "gl", name: "Galician", native: "Galego", label: "Significado", aliases: ["galician"] },
-      { code: "ka", name: "Georgian", native: "ქართული", label: "მნიშვნელობა", aliases: ["georgian"] },
-      { code: "de", name: "German", native: "Deutsch", label: "Bedeutung", aliases: ["german", "deutsch"] },
-      { code: "el", name: "Greek", native: "Ελληνικά", label: "Σημασία", aliases: ["greek", "ελληνικά"] },
-      { code: "gn", name: "Guarani", native: "Avañe'ẽ", label: "He'iséva", aliases: ["guarani"] },
-      { code: "gu", name: "Gujarati", native: "ગુજરાતી", label: "અર્થ", aliases: ["gujarati"] },
-      { code: "ht", name: "Haitian Creole", native: "Kreyòl Ayisyen", label: "Siyifikasyon", aliases: ["haitian creole", "creole"] },
-      { code: "ha", name: "Hausa", native: "Hausa", label: "Ma’ana", aliases: ["hausa"] },
-      { code: "haw", name: "Hawaiian", native: "ʻŌlelo Hawaiʻi", label: "Manaʻo", aliases: ["hawaiian"] },
-      { code: "he", name: "Hebrew", native: "עברית", label: "משמעות", aliases: ["hebrew", "עברית"] },
-      { code: "hi", name: "Hindi", native: "हिन्दी", label: "हिंदी अर्थ", aliases: ["hindi", "हिन्दी"] },
-      { code: "hmn", name: "Hmong", native: "Hmoob", label: "Lub ntsiab", aliases: ["hmong"] },
-      { code: "hu", name: "Hungarian", native: "Magyar", label: "Jelentés", aliases: ["hungarian"] },
-      { code: "is", name: "Icelandic", native: "Íslenska", label: "Merking", aliases: ["icelandic"] },
-      { code: "ig", name: "Igbo", native: "Igbo", label: "Pụtara", aliases: ["igbo"] },
-      { code: "ilo", name: "Ilocano", native: "Ilokano", label: "Kahulugan", aliases: ["ilocano"] },
-      { code: "id", name: "Indonesian", native: "Bahasa Indonesia", label: "Arti", aliases: ["indonesian", "bahasa indonesia"] },
-      { code: "ga", name: "Irish", native: "Gaeilge", label: "Brí", aliases: ["irish"] },
-      { code: "it", name: "Italian", native: "Italiano", label: "Significato", aliases: ["italian", "italiano"] },
-      { code: "ja", name: "Japanese", native: "日本語", label: "意味", aliases: ["japanese", "日本語"] },
-      { code: "jv", name: "Javanese", native: "Basa Jawa", label: "Tegesé", aliases: ["javanese"] },
-      { code: "kn", name: "Kannada", native: "ಕನ್ನಡ", label: "ಅರ್ಥ", aliases: ["kannada"] },
-      { code: "kk", name: "Kazakh", native: "Қазақша", label: "Мағынасы", aliases: ["kazakh"] },
-      { code: "km", name: "Khmer", native: "ខ្មែរ", label: "អត្ថន័យ", aliases: ["khmer"] },
-      { code: "rw", name: "Kinyarwanda", native: "Kinyarwanda", label: "Ibisobanuro", aliases: ["kinyarwanda"] },
-      { code: "kok", name: "Konkani", native: "कोंकणी", label: "अर्थ", aliases: ["konkani"] },
-      { code: "ko", name: "Korean", native: "한국어", label: "뜻", aliases: ["korean", "한국어"] },
-      { code: "kri", name: "Krio", native: "Krio", label: "Minin", aliases: ["krio"] },
-      { code: "ku", name: "Kurdish (Kurmanji)", native: "Kurdî", label: "Wate", aliases: ["kurmanji"] },
-      { code: "ckb", name: "Kurdish (Sorani)", native: "کوردی", label: "مانا", aliases: ["kurdish", "sorani"] },
-      { code: "ky", name: "Kyrgyz", native: "Кыргызча", label: "Мааниси", aliases: ["kyrgyz"] },
-      { code: "lo", name: "Lao", native: "ລາວ", label: "ຄວາມໝາຍ", aliases: ["lao"] },
-      { code: "la", name: "Latin", native: "Latina", label: "Sensus", aliases: ["latin"] },
-      { code: "lv", name: "Latvian", native: "Latviešu", label: "Nozīme", aliases: ["latvian"] },
-      { code: "ln", name: "Lingala", native: "Lingála", label: "Ndimbola", aliases: ["lingala"] },
-      { code: "lt", name: "Lithuanian", native: "Lietuvių", label: "Reikšmė", aliases: ["lithuanian"] },
-      { code: "lg", name: "Luganda", native: "Luganda", label: "Amakulu", aliases: ["luganda"] },
-      { code: "lb", name: "Luxembourgish", native: "Lëtzebuergesch", label: "Bedeitung", aliases: ["luxembourgish"] },
-      { code: "mk", name: "Macedonian", native: "Македонски", label: "Значење", aliases: ["macedonian"] },
-      { code: "mai", name: "Maithili", native: "मैथिली", label: "अर्थ", aliases: ["maithili"] },
-      { code: "mg", name: "Malagasy", native: "Malagasy", label: "Hevitra", aliases: ["malagasy"] },
-      { code: "ms", name: "Malay", native: "Bahasa Melayu", label: "Maksud", aliases: ["malay"] },
-      { code: "ml", name: "Malayalam", native: "മലയാളം", label: "അര്‍ഥം", aliases: ["malayalam"] },
-      { code: "mt", name: "Maltese", native: "Malti", label: "Tifsira", aliases: ["maltese"] },
-      { code: "mi", name: "Maori", native: "Māori", label: "Tikanga", aliases: ["maori"] },
-      { code: "mr", name: "Marathi", native: "मराठी", label: "अर्थ", aliases: ["marathi"] },
-      { code: "mni", name: "Manipuri", native: "মৈতৈলোন্", label: "অর্থ", aliases: ["manipuri", "meitei"] },
-      { code: "mn", name: "Mongolian", native: "Монгол", label: "Утга", aliases: ["mongolian"] },
-      { code: "mo", name: "Moldovan", native: "Moldovenească", label: "Sens", aliases: ["moldovan"] },
-      { code: "nqo", name: "N'Ko", native: "ߒߞߏ", label: "ߞߊ߬ߙߊ߲", aliases: ["nko"] },
-      { code: "nah", name: "Nahuatl", native: "Nāhuatl", label: "Itlahtol", aliases: ["nahuatl"] },
-      { code: "ne", name: "Nepali", native: "नेपाली", label: "अर्थ", aliases: ["nepali", "नेपाली"] },
-      { code: "no", name: "Norwegian", native: "Norsk", label: "Betydning", aliases: ["norwegian", "norsk"] },
-      { code: "oc", name: "Occitan", native: "Occitan", label: "Significacion", aliases: ["occitan"] },
-      { code: "or", name: "Odia", native: "ଓଡ଼ିଆ", label: "ଅର୍ଥ", aliases: ["odia", "oriya"] },
-      { code: "om", name: "Oromo", native: "Afaan Oromoo", label: "Hiika", aliases: ["oromo"] },
-      { code: "pap", name: "Papiamento", native: "Papiamentu", label: "Signifikado", aliases: ["papiamento"] },
-      { code: "ps", name: "Pashto", native: "پښتو", label: "مانا", aliases: ["pashto"] },
-      { code: "fa", name: "Persian", native: "فارسی", label: "معنی", aliases: ["persian", "farsi", "فارسی"] },
-      { code: "pl", name: "Polish", native: "Polski", label: "Znaczenie", aliases: ["polish", "polski"] },
-      { code: "pt", name: "Portuguese", native: "Português", label: "Significado", aliases: ["portuguese", "português"] },
-      { code: "pa", name: "Punjabi", native: "ਪੰਜਾਬੀ", label: "ਅਰਥ", aliases: ["punjabi", "panjabi"] },
-      { code: "qu", name: "Quechua", native: "Runa Simi", label: "Nisq'a", aliases: ["quechua"] },
-      { code: "ro", name: "Romanian", native: "Română", label: "Sens", aliases: ["romanian"] },
-      { code: "rm", name: "Romansh", native: "Rumantsch", label: "Muntada", aliases: ["romansh"] },
-      { code: "ru", name: "Russian", native: "Русский", label: "Значение", aliases: ["russian", "русский"] },
-      { code: "sm", name: "Samoan", native: "Gagana Samoa", label: "Uiga", aliases: ["samoan"] },
-      { code: "sa", name: "Sanskrit", native: "संस्कृतम्", label: "अर्थः", aliases: ["sanskrit"] },
-      { code: "sat", name: "Santali", native: "ᱥᱟᱱᱛᱟᱲᱤ", label: "ᱟᱨᱛ", aliases: ["santali"] },
-      { code: "gd", name: "Scottish Gaelic", native: "Gàidhlig", label: "Ciall", aliases: ["scottish gaelic"] },
-      { code: "sr", name: "Serbian", native: "Српски", label: "Значење", aliases: ["serbian"] },
-      { code: "st", name: "Sesotho", native: "Sesotho", label: "Moelelo", aliases: ["sesotho"] },
-      { code: "sn", name: "Shona", native: "chiShona", label: "Zvinoreva", aliases: ["shona"] },
-      { code: "sd", name: "Sindhi", native: "سنڌي", label: "معنی", aliases: ["sindhi"] },
-      { code: "si", name: "Sinhala", native: "සිංහල", label: "අර්ථය", aliases: ["sinhala"] },
-      { code: "sk", name: "Slovak", native: "Slovenčina", label: "Význam", aliases: ["slovak"] },
-      { code: "sl", name: "Slovenian", native: "Slovenščina", label: "Pomen", aliases: ["slovenian"] },
-      { code: "so", name: "Somali", native: "Soomaali", label: "Macne", aliases: ["somali"] },
-      { code: "es", name: "Spanish", native: "Español", label: "Significado", aliases: ["spanish", "español"] },
-      { code: "su", name: "Sundanese", native: "Basa Sunda", label: "Harti", aliases: ["sundanese"] },
-      { code: "sw", name: "Swahili", native: "Kiswahili", label: "Maana", aliases: ["swahili", "kiswahili"] },
-      { code: "sv", name: "Swedish", native: "Svenska", label: "Betydelse", aliases: ["swedish", "svenska"] },
-      { code: "tg", name: "Tajik", native: "Тоҷикӣ", label: "Маъно", aliases: ["tajik"] },
-      { code: "ta", name: "Tamil", native: "தமிழ்", label: "பொருள்", aliases: ["tamil"] },
-      { code: "tt", name: "Tatar", native: "Татар", label: "Мәгънә", aliases: ["tatar"] },
-      { code: "te", name: "Telugu", native: "తెలుగు", label: "అర్థం", aliases: ["telugu"] },
-      { code: "th", name: "Thai", native: "ไทย", label: "ความหมาย", aliases: ["thai"] },
-      { code: "bo", name: "Tibetan", native: "བོད་སྐད", label: "དོན", aliases: ["tibetan"] },
-      { code: "ti", name: "Tigrinya", native: "ትግርኛ", label: "ትርጉም", aliases: ["tigrinya"] },
-      { code: "to", name: "Tongan", native: "Lea Faka-Tonga", label: "ʻUhinga", aliases: ["tongan"] },
-      { code: "ts", name: "Tsonga", native: "Xitsonga", label: "Nhlamuselo", aliases: ["tsonga"] },
-      { code: "tn", name: "Tswana", native: "Setswana", label: "Tlhaloso", aliases: ["tswana"] },
-      { code: "tr", name: "Turkish", native: "Türkçe", label: "Türkçe anlam", aliases: ["turkish", "türkçe"] },
-      { code: "tk", name: "Turkmen", native: "Türkmen", label: "Manysy", aliases: ["turkmen"] },
-      { code: "ak", name: "Twi", native: "Twi", label: "Nkyerɛase", aliases: ["twi"] },
-      { code: "uk", name: "Ukrainian", native: "Українська", label: "Значення", aliases: ["ukrainian", "українська"] },
-      { code: "ur", name: "Urdu", native: "اردو", label: "اردو معنی", aliases: ["urdu", "اردو"] },
-      { code: "ug", name: "Uyghur", native: "ئۇيغۇرچە", label: "مەنىسى", aliases: ["uyghur", "uighur"] },
-      { code: "uz", name: "Uzbek", native: "Oʻzbek", label: "Ma'nosi", aliases: ["uzbek"] },
-      { code: "ve", name: "Venda", native: "Tshivenda", label: "Ṱhalutshedzo", aliases: ["venda"] },
-      { code: "vi", name: "Vietnamese", native: "Tiếng Việt", label: "Nghĩa", aliases: ["vietnamese", "tiếng việt"] },
-      { code: "cy", name: "Welsh", native: "Cymraeg", label: "Ystyr", aliases: ["welsh"] },
-      { code: "wo", name: "Wolof", native: "Wolof", label: "Tekki", aliases: ["wolof"] },
-      { code: "xh", name: "Xhosa", native: "isiXhosa", label: "Intsingiselo", aliases: ["xhosa"] },
-      { code: "yi", name: "Yiddish", native: "ייִדיש", label: "באַדייט", aliases: ["yiddish"] },
-      { code: "yo", name: "Yorùbá", native: "Yorùbá", label: "Itumọ", aliases: ["yoruba"] },
-      { code: "zu", name: "Zulu", native: "isiZulu", label: "Incazelo", aliases: ["zulu"] }
-    ].sort((a, b) => a.name.localeCompare(b.name));
-
-    let currentUserLanguage = null;
-    let pendingGenerateAfterLanguageChoice = false;
-
-    let cards = [];
-    let currentIndex = 0;
-    let isFlipped = false;
-
-    let serverStudyCards = [];
-    let serverStudyIndex = 0;
-    let serverIsFlipped = false;
-
-    let savedWords = JSON.parse(localStorage.getItem('ankiSavedWords')) || [];
-    savedWords = savedWords.map(w => ({
-      interval: 0,
-      due: Date.now(),
-      easyStreak: 0,
-      permanentlyKnown: false,
-      editingMeaning: false,
-      accent: w.accent || 'us',
-      pronunciationText: w.pronunciationText || '',
-      pronunciationAudioUS: w.pronunciationAudioUS || '',
-      pronunciationAudioUK: w.pronunciationAudioUK || '',
-      ...w
-    }));
-    localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
-
-    const commonEasyWords = new Set([
-      "a","an","the","and","or","but","if","then","so","for","of","to","in","on","at","by","with","from","up","down","over","under","into","about","after","before","as","like","that","this","these","those","i","me","my","you","your","he","him","his","she","her","it","its","we","us","our","they","them","their","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","can","could","may","might","must","not","no","yes","all","some","any","many","few","more","most","other","another","one","two","first","last","new","old","good","bad","big","small","high","low","time","year","day","way","thing","man","woman","child","people","world","life","work","place","home","school","book","word","sentence","passage"
-    ]);
-
-    let pronunciationAudio = null;
-
-    function buildMerriamAudioURL(audioFile) {
-      if (!audioFile) return "";
-      let subdirectory = audioFile[0];
-      if (/^bix/.test(audioFile)) subdirectory = "bix";
-      else if (/^gg/.test(audioFile)) subdirectory = "gg";
-      else if (/^[0-9]|^_/.test(audioFile)) subdirectory = "number";
-      return `https://media.merriam-webster.com/audio/prons/en/us/mp3/${subdirectory}/${audioFile}.mp3`;
-    }
-
-    function extractPronunciationData(freeData, merriamData) {
-      const result = {
-        pronunciationText: "",
-        pronunciationAudioUS: "",
-        pronunciationAudioUK: ""
-      };
-
-      if (freeData?.entries?.length) {
-        for (const entry of freeData.entries) {
-          if (Array.isArray(entry.pronunciations)) {
-            const found = entry.pronunciations.find(p => p?.text);
-            if (found?.text && !result.pronunciationText) {
-              result.pronunciationText = String(found.text).trim();
-            }
+    if (freeData?.entries?.length) {
+      for (const entry of freeData.entries) {
+        if (Array.isArray(entry.pronunciations)) {
+          const found = entry.pronunciations.find(p => p?.text);
+          if (found?.text && !result.pronunciationText) {
+            result.pronunciationText = String(found.text).trim();
           }
         }
       }
+    }
 
-      if (merriamData && Array.isArray(merriamData) && merriamData.length && typeof merriamData[0] !== "string") {
-        const entry = merriamData.find(item => item?.hwi?.prs?.length) || merriamData[0];
-        const prs = entry?.hwi?.prs || [];
-        const firstText = prs.find(p => p?.mw)?.mw;
-        if (firstText && !result.pronunciationText) {
-          result.pronunciationText = `/${String(firstText).trim()}/`;
-        }
-
-        const usAudio = prs.find(p => p?.sound?.audio)?.sound?.audio;
-        if (usAudio) result.pronunciationAudioUS = buildMerriamAudioURL(usAudio);
-
-        const ukAudio = prs.find(p => {
-          const labels = Array.isArray(p?.l) ? p.l.join(" ").toLowerCase() : "";
-          return labels.includes("british");
-        })?.sound?.audio;
-
-        if (ukAudio) result.pronunciationAudioUK = buildMerriamAudioURL(ukAudio);
+    if (merriamData && Array.isArray(merriamData) && merriamData.length && typeof merriamData[0] !== "string") {
+      const entry = merriamData.find(item => item?.hwi?.prs?.length) || merriamData[0];
+      const prs = entry?.hwi?.prs || [];
+      const firstText = prs.find(p => p?.mw)?.mw;
+      if (firstText && !result.pronunciationText) {
+        result.pronunciationText = `/${String(firstText).trim()}/`;
       }
 
-      return result;
+      const usAudio = prs.find(p => p?.sound?.audio)?.sound?.audio;
+      if (usAudio) result.pronunciationAudioUS = buildMerriamAudioURL(usAudio);
+
+      const ukAudio = prs.find(p => {
+        const labels = Array.isArray(p?.l) ? p.l.join(" ").toLowerCase() : "";
+        return labels.includes("british");
+      })?.sound?.audio;
+
+      if (ukAudio) result.pronunciationAudioUK = buildMerriamAudioURL(ukAudio);
     }
 
-    async function playWordPronunciation(word, accent = 'us', pronunciationAudioUS = "", pronunciationAudioUK = "") {
-      stopWordPronunciation();
+    return result;
+  }
 
-      const pickedAudio = accent === 'uk' ? (pronunciationAudioUK || pronunciationAudioUS) : (pronunciationAudioUS || pronunciationAudioUK);
+  async function playWordPronunciation(word, accent = 'us', pronunciationAudioUS = "", pronunciationAudioUK = "") {
+    stopWordPronunciation();
 
-      if (pickedAudio) {
-        pronunciationAudio = new Audio(pickedAudio);
-        pronunciationAudio.play().catch(() => {});
-        return;
+    const pickedAudio = accent === 'uk' ? (pronunciationAudioUK || pronunciationAudioUS) : (pronunciationAudioUS || pronunciationAudioUK);
+
+    if (pickedAudio) {
+      pronunciationAudio = new Audio(pickedAudio);
+      pronunciationAudio.play().catch(() => {});
+      return;
+    }
+
+    if ('speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(word);
+      utter.lang = accent === 'uk' ? 'en-GB' : 'en-US';
+      utter.rate = 0.92;
+      utter.pitch = 1;
+      window.speechSynthesis.speak(utter);
+    }
+  }
+
+  function stopWordPronunciation() {
+    try {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch {}
+    try {
+      if (pronunciationAudio) {
+        pronunciationAudio.pause();
+        pronunciationAudio.currentTime = 0;
       }
+    } catch {}
+  }
 
-      if ('speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(word);
-        utter.lang = accent === 'uk' ? 'en-GB' : 'en-US';
-        utter.rate = 0.92;
-        utter.pitch = 1;
-        window.speechSynthesis.speak(utter);
-      }
+  function getUserLanguage() {
+    const code = localStorage.getItem(USER_LANGUAGE_KEY);
+    return LANGUAGE_OPTIONS.find(l => l.code === code) || null;
+  }
+
+  function saveUserLanguage(code) {
+    localStorage.setItem(USER_LANGUAGE_KEY, code);
+    currentUserLanguage = getUserLanguage();
+    applyUserLanguageToUI();
+    closeLanguageGate();
+
+    if (pendingGenerateAfterLanguageChoice) {
+      pendingGenerateAfterLanguageChoice = false;
+      generateFlashcards();
+    }
+  }
+
+  function applyUserLanguageToUI() {
+    currentUserLanguage = getUserLanguage();
+    const header = document.getElementById('header-first-language');
+    if (!header) return;
+    header.textContent = currentUserLanguage ? currentUserLanguage.native : "Choose language on Generate";
+  }
+
+  function getMeaningLabel() {
+    return currentUserLanguage?.label || "Meaning";
+  }
+
+  function openLanguageGate(afterSelectGenerate = false) {
+    if (afterSelectGenerate) pendingGenerateAfterLanguageChoice = true;
+    renderLanguageList("");
+    const searchInput = document.getElementById('language-search');
+    if (searchInput) {
+      searchInput.value = "";
+      setTimeout(() => searchInput.focus(), 0);
+    }
+    const gate = document.getElementById('language-gate');
+    gate.classList.remove('hidden');
+    gate.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLanguageGate() {
+    const gate = document.getElementById('language-gate');
+    gate.classList.add('hidden');
+    gate.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+
+  function initLanguageGate() {
+    currentUserLanguage = getUserLanguage();
+    applyUserLanguageToUI();
+
+    renderLanguageList("");
+    document.getElementById('language-search').addEventListener('input', e => {
+      renderLanguageList(e.target.value || "");
+    });
+
+    closeLanguageGate();
+    document.getElementById('app-shell').classList.remove('hidden');
+  }
+
+  function renderLanguageList(query) {
+    const q = String(query).trim().toLowerCase();
+    const container = document.getElementById('language-list');
+    container.innerHTML = '';
+
+    const filtered = LANGUAGE_OPTIONS.filter(lang => {
+      const hay = [
+        lang.code,
+        lang.name,
+        lang.native,
+        lang.label,
+        ...(lang.aliases || [])
+      ].join(' ').toLowerCase();
+
+      const compactQ = q.replace(/\s+/g, '');
+      const compactHay = hay.replace(/\s+/g, '');
+
+      return !q || hay.includes(q) || compactHay.includes(compactQ);
+    });
+
+    if (!filtered.length) {
+      container.innerHTML = `<div class="md:col-span-2 text-center py-10 text-slate-400">No language found.</div>`;
+      return;
     }
 
-    function stopWordPronunciation() {
-      try {
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-      } catch {}
-      try {
-        if (pronunciationAudio) {
-          pronunciationAudio.pause();
-          pronunciationAudio.currentTime = 0;
-        }
-      } catch {}
+    filtered.forEach(lang => {
+      const btn = document.createElement('button');
+      btn.className = 'language-card text-left bg-slate-950 border border-slate-700 rounded-2xl p-5 transition';
+      btn.innerHTML = `
+        <div class="text-white font-semibold text-lg">${escapeHTML(lang.native)}</div>
+        <div class="text-slate-300 mt-1">${escapeHTML(lang.name)}</div>
+        <div class="text-slate-500 text-sm mt-1 uppercase">${escapeHTML(lang.code)}</div>
+      `;
+      btn.onclick = () => saveUserLanguage(lang.code);
+      container.appendChild(btn);
+    });
+  }
+
+  function persistSavedWords() {
+    localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
+    updateServerCount();
+    updateKnownCounts();
+  }
+
+  function isDesktop() {
+    return window.innerWidth >= 1024;
+  }
+
+  function shouldIgnoreShortcutTarget(target) {
+    if (!target) return false;
+    const tag = (target.tagName || "").toLowerCase();
+    return tag === "input" || tag === "textarea" || target.isContentEditable;
+  }
+
+  function showDesktopTipOnce() {
+    if (!isDesktop()) return;
+    const shown = localStorage.getItem(SHORTCUT_TIP_KEY);
+    if (shown === 'yes') return;
+    document.getElementById('desktop-shortcut-tip').classList.remove('hidden');
+    localStorage.setItem(SHORTCUT_TIP_KEY, 'yes');
+  }
+
+  function hideDesktopTip() {
+    document.getElementById('desktop-shortcut-tip').classList.add('hidden');
+  }
+
+  function escapeHTML(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m]);
+  }
+
+  function highlightWord(text, word) {
+    const escaped = escapeHTML(text);
+    const safeWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b(${safeWord})\\b`, 'gi');
+    return escaped.replace(regex, '<mark>$1</mark>');
+  }
+
+  function dedupeStrings(arr) {
+    return [...new Set((arr || []).filter(Boolean).map(s => String(s).trim()).filter(Boolean))];
+  }
+
+  function isMostlyNative(text, langCode) {
+    if (!text) return false;
+    const t = String(text).trim();
+    if (!t) return false;
+
+    const scriptChecks = {
+      bn: /[\u0980-\u09FF]/,
+      hi: /[\u0900-\u097F]/,
+      mr: /[\u0900-\u097F]/,
+      ne: /[\u0900-\u097F]/,
+      sa: /[\u0900-\u097F]/,
+      gu: /[\u0A80-\u0AFF]/,
+      pa: /[\u0A00-\u0A7F]/,
+      ta: /[\u0B80-\u0BFF]/,
+      te: /[\u0C00-\u0C7F]/,
+      kn: /[\u0C80-\u0CFF]/,
+      ml: /[\u0D00-\u0D7F]/,
+      or: /[\u0B00-\u0B7F]/,
+      as: /[\u0980-\u09FF]/,
+      ar: /[\u0600-\u06FF]/,
+      fa: /[\u0600-\u06FF]/,
+      ur: /[\u0600-\u06FF]/,
+      ps: /[\u0600-\u06FF]/,
+      he: /[\u0590-\u05FF]/,
+      ru: /[\u0400-\u04FF]/,
+      uk: /[\u0400-\u04FF]/,
+      bg: /[\u0400-\u04FF]/,
+      sr: /[\u0400-\u04FF]/,
+      mk: /[\u0400-\u04FF]/,
+      el: /[\u0370-\u03FF]/,
+      zh: /[\u4E00-\u9FFF]/,
+      "zh-CN": /[\u4E00-\u9FFF]/,
+      "zh-TW": /[\u4E00-\u9FFF]/,
+      ja: /[\u3040-\u30FF\u4E00-\u9FFF]/,
+      ko: /[\uAC00-\uD7AF]/,
+      th: /[\u0E00-\u0E7F]/,
+      my: /[\u1000-\u109F]/,
+      km: /[\u1780-\u17FF]/,
+      lo: /[\u0E80-\u0EFF]/,
+      si: /[\u0D80-\u0DFF]/
+    };
+
+    const regex = scriptChecks[langCode];
+    if (regex) return regex.test(t);
+    return t.length > 0;
+  }
+
+  function normalizeDefinition(text) {
+    if (!text) return "";
+    return String(text).replace(/\s+/g, ' ').replace(/\{[^}]+\}/g, '').trim();
+  }
+
+  function sentenceContainsWord(sentence, surfaces) {
+    return Array.from(surfaces).some(surf => {
+      const re = new RegExp(`\\b${surf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return re.test(sentence);
+    });
+  }
+
+  function makeEasyMeaningFallback(word) {
+    const w = String(word).toLowerCase();
+    const simpleMap = {
+      when: "used to ask or talk about the time something happens",
+      where: "used to ask or talk about the place of something",
+      why: "used to ask the reason for something",
+      how: "used to ask the way something happens or is done",
+      what: "used to ask for information about something",
+      who: "used to ask which person",
+      because: "for the reason that",
+      although: "in spite of the fact that",
+      however: "but; in a different way than expected",
+      therefore: "for that reason",
+      find: "to discover or get something",
+      analyze: "to study something carefully",
+      observe: "to watch carefully",
+      require: "to need something",
+      occur: "to happen",
+      affect: "to influence something",
+      indicate: "to show or point out",
+      improve: "to make better",
+      compare: "to examine similarities and differences"
+    };
+    if (simpleMap[w]) return simpleMap[w];
+    return `easy English meaning not available yet for "${w}"`;
+  }
+
+  function normalizeLangCodeForApis(code) {
+    if (!code) return "bn";
+
+    const map = {
+      "zh-CN": "zh-CN",
+      "zh-TW": "zh-TW",
+      "tl": "tl",
+      "no": "no",
+      "ckb": "ku",
+      "prs": "fa",
+      "mo": "ro"
+    };
+
+    return map[code] || code;
+  }
+
+  function withTimeout(promise, timeoutMs = 7000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), timeoutMs))
+    ]);
+  }
+
+  async function translateViaGoogleApi(text, sourceLang = "en", targetLang = "bn") {
+    const endpoint = TRANSLATION_CONFIG.googleEndpoint?.trim();
+    if (!endpoint) return "";
+
+    try {
+      const response = await withTimeout(fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          source: sourceLang,
+          target: targetLang
+        })
+      }), TRANSLATION_CONFIG.googleTimeoutMs);
+
+      if (!response.ok) return "";
+
+      const data = await response.json();
+      const translated =
+        data?.translatedText ||
+        data?.translation ||
+        data?.data?.translatedText ||
+        "";
+
+      return String(translated || "").trim();
+    } catch {
+      return "";
     }
+  }
 
-    function getUserLanguage() {
-      const code = localStorage.getItem(USER_LANGUAGE_KEY);
-      return LANGUAGE_OPTIONS.find(l => l.code === code) || null;
+  async function translateViaMyMemory(text, sourceLang = "en", targetLang = "bn") {
+    try {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(sourceLang)}|${encodeURIComponent(targetLang)}`;
+      const response = await withTimeout(fetch(url), TRANSLATION_CONFIG.myMemoryTimeoutMs);
+      if (!response.ok) return "";
+
+      const data = await response.json();
+      const translated = data?.responseData?.translatedText?.trim() || "";
+      if (!translated) return "";
+      return translated;
+    } catch {
+      return "";
     }
+  }
 
-    function saveUserLanguage(code) {
-      localStorage.setItem(USER_LANGUAGE_KEY, code);
-      currentUserLanguage = getUserLanguage();
-      applyUserLanguageToUI();
-      closeLanguageGate();
+  async function translateEnglishToUserLanguage(text) {
+    const userCode = normalizeLangCodeForApis(currentUserLanguage?.code || "bn");
+    const sourceCode = "en";
 
-      if (pendingGenerateAfterLanguageChoice) {
-        pendingGenerateAfterLanguageChoice = false;
-        generateFlashcards();
-      }
-    }
+    if (!text || !String(text).trim()) return "";
 
-    function applyUserLanguageToUI() {
-      currentUserLanguage = getUserLanguage();
-      const header = document.getElementById('header-first-language');
-      if (!header) return;
-      header.textContent = currentUserLanguage ? currentUserLanguage.native : "Choose language on Generate";
-    }
+    let translated = "";
 
-    function getMeaningLabel() {
-      return currentUserLanguage?.label || "Meaning";
-    }
-
-    function openLanguageGate(afterSelectGenerate = false) {
-      if (afterSelectGenerate) pendingGenerateAfterLanguageChoice = true;
-      renderLanguageList("");
-      const searchInput = document.getElementById('language-search');
-      if (searchInput) {
-        searchInput.value = "";
-        setTimeout(() => searchInput.focus(), 0);
-      }
-      const gate = document.getElementById('language-gate');
-      gate.classList.remove('hidden');
-      gate.classList.add('flex');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeLanguageGate() {
-      const gate = document.getElementById('language-gate');
-      gate.classList.add('hidden');
-      gate.classList.remove('flex');
-      document.body.style.overflow = '';
-    }
-
-    function initLanguageGate() {
-      currentUserLanguage = getUserLanguage();
-      applyUserLanguageToUI();
-
-      renderLanguageList("");
-      document.getElementById('language-search').addEventListener('input', e => {
-        renderLanguageList(e.target.value || "");
-      });
-
-      closeLanguageGate();
-      document.getElementById('app-shell').classList.remove('hidden');
-    }
-
-    function renderLanguageList(query) {
-      const q = String(query).trim().toLowerCase();
-      const container = document.getElementById('language-list');
-      container.innerHTML = '';
-
-      const filtered = LANGUAGE_OPTIONS.filter(lang => {
-        const hay = [
-          lang.code,
-          lang.name,
-          lang.native,
-          lang.label,
-          ...(lang.aliases || [])
-        ].join(' ').toLowerCase();
-
-        const compactQ = q.replace(/\s+/g, '');
-        const compactHay = hay.replace(/\s+/g, '');
-
-        return !q || hay.includes(q) || compactHay.includes(compactQ);
-      });
-
-      if (!filtered.length) {
-        container.innerHTML = `<div class="md:col-span-2 text-center py-10 text-slate-400">No language found.</div>`;
-        return;
-      }
-
-      filtered.forEach(lang => {
-        const btn = document.createElement('button');
-        btn.className = 'language-card text-left bg-slate-950 border border-slate-700 rounded-2xl p-5 transition';
-        btn.innerHTML = `
-          <div class="text-white font-semibold text-lg">${escapeHTML(lang.native)}</div>
-          <div class="text-slate-300 mt-1">${escapeHTML(lang.name)}</div>
-          <div class="text-slate-500 text-sm mt-1 uppercase">${escapeHTML(lang.code)}</div>
-        `;
-        btn.onclick = () => saveUserLanguage(lang.code);
-        container.appendChild(btn);
-      });
-    }
-
-    function persistSavedWords() {
-      localStorage.setItem('ankiSavedWords', JSON.stringify(savedWords));
-      updateServerCount();
-      updateKnownCounts();
-    }
-
-    function isDesktop() {
-      return window.innerWidth >= 1024;
-    }
-
-    function shouldIgnoreShortcutTarget(target) {
-      if (!target) return false;
-      const tag = (target.tagName || "").toLowerCase();
-      return tag === "input" || tag === "textarea" || target.isContentEditable;
-    }
-
-    function showDesktopTipOnce() {
-      if (!isDesktop()) return;
-      const shown = localStorage.getItem(SHORTCUT_TIP_KEY);
-      if (shown === 'yes') return;
-      document.getElementById('desktop-shortcut-tip').classList.remove('hidden');
-      localStorage.setItem(SHORTCUT_TIP_KEY, 'yes');
-    }
-
-    function hideDesktopTip() {
-      document.getElementById('desktop-shortcut-tip').classList.add('hidden');
-    }
-
-    function simpleLemmatize(word) {
-      word = word.toLowerCase().trim();
-      const irregulars = {
-        'was':'be','were':'be','is':'be','am':'be','are':'be','has':'have','had':'have','did':'do',
-        'went':'go','gone':'go','came':'come','saw':'see','found':'find','took':'take','gave':'give',
-        'made':'make','better':'good','best':'good','worse':'bad','worst':'bad','children':'child'
-      };
-      if (irregulars[word]) return irregulars[word];
-      if (word.endsWith('ies')) return word.slice(0,-3)+'y';
-      if (word.endsWith('ves')) return word.slice(0,-3)+'f';
-      if (word.endsWith('es') && word.length > 4) return word.slice(0,-2);
-      if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0,-1);
-      if (word.endsWith('ing') && word.length > 5) {
-        let b = word.slice(0,-3);
-        if (b.length > 3 && b[b.length-1] === b[b.length-2]) b = b.slice(0,-1);
-        return b || word;
-      }
-      if (word.endsWith('ed') && word.length > 4) {
-        let b = word.slice(0,-2);
-        if (b.endsWith('i')) b = b.slice(0,-1) + 'y';
-        return b || word;
-      }
-      return word;
-    }
-
-    function escapeHTML(str) {
-      return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m]);
-    }
-
-    function highlightWord(text, word) {
-      const escaped = escapeHTML(text);
-      const safeWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b(${safeWord})\\b`, 'gi');
-      return escaped.replace(regex, '<mark>$1</mark>');
-    }
-
-    function dedupeStrings(arr) {
-      return [...new Set((arr || []).filter(Boolean).map(s => String(s).trim()).filter(Boolean))];
-    }
-
-    function isMostlyNative(text, langCode) {
-      if (!text) return false;
-      const t = String(text).trim();
-      if (!t) return false;
-
-      const scriptChecks = {
-        bn: /[\u0980-\u09FF]/,
-        hi: /[\u0900-\u097F]/,
-        mr: /[\u0900-\u097F]/,
-        ne: /[\u0900-\u097F]/,
-        sa: /[\u0900-\u097F]/,
-        gu: /[\u0A80-\u0AFF]/,
-        pa: /[\u0A00-\u0A7F]/,
-        ta: /[\u0B80-\u0BFF]/,
-        te: /[\u0C00-\u0C7F]/,
-        kn: /[\u0C80-\u0CFF]/,
-        ml: /[\u0D00-\u0D7F]/,
-        or: /[\u0B00-\u0B7F]/,
-        as: /[\u0980-\u09FF]/,
-        ar: /[\u0600-\u06FF]/,
-        fa: /[\u0600-\u06FF]/,
-        ur: /[\u0600-\u06FF]/,
-        ps: /[\u0600-\u06FF]/,
-        he: /[\u0590-\u05FF]/,
-        ru: /[\u0400-\u04FF]/,
-        uk: /[\u0400-\u04FF]/,
-        bg: /[\u0400-\u04FF]/,
-        sr: /[\u0400-\u04FF]/,
-        mk: /[\u0400-\u04FF]/,
-        el: /[\u0370-\u03FF]/,
-        zh: /[\u4E00-\u9FFF]/,
-        "zh-CN": /[\u4E00-\u9FFF]/,
-        "zh-TW": /[\u4E00-\u9FFF]/,
-        ja: /[\u3040-\u30FF\u4E00-\u9FFF]/,
-        ko: /[\uAC00-\uD7AF]/,
-        th: /[\u0E00-\u0E7F]/,
-        my: /[\u1000-\u109F]/,
-        km: /[\u1780-\u17FF]/,
-        lo: /[\u0E80-\u0EFF]/,
-        si: /[\u0D80-\u0DFF]/
-      };
-
-      const regex = scriptChecks[langCode];
-      if (regex) return regex.test(t);
-      return t.length > 0;
-    }
-
-    function normalizeDefinition(text) {
-      if (!text) return "";
-      return String(text).replace(/\s+/g, ' ').replace(/\{[^}]+\}/g, '').trim();
-    }
-
-    function sentenceContainsWord(sentence, surfaces) {
-      return Array.from(surfaces).some(surf => {
-        const re = new RegExp(`\\b${surf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-        return re.test(sentence);
-      });
-    }
-
-    function makeEasyMeaningFallback(word) {
-      const w = String(word).toLowerCase();
-      const simpleMap = {
-        when: "used to ask or talk about the time something happens",
-        where: "used to ask or talk about the place of something",
-        why: "used to ask the reason for something",
-        how: "used to ask the way something happens or is done",
-        what: "used to ask for information about something",
-        who: "used to ask which person",
-        because: "for the reason that",
-        although: "in spite of the fact that",
-        however: "but; in a different way than expected",
-        therefore: "for that reason",
-        find: "to discover or get something",
-        analyze: "to study something carefully",
-        observe: "to watch carefully",
-        require: "to need something",
-        occur: "to happen",
-        affect: "to influence something",
-        indicate: "to show or point out",
-        improve: "to make better",
-        compare: "to examine similarities and differences"
-      };
-      if (simpleMap[w]) return simpleMap[w];
-      return `easy English meaning not available yet for "${w}"`;
-    }
-
-    function normalizeLangCodeForApis(code) {
-      if (!code) return "bn";
-
-      const map = {
-        "zh-CN": "zh-CN",
-        "zh-TW": "zh-TW",
-        "tl": "tl",
-        "no": "no",
-        "ckb": "ku",
-        "prs": "fa",
-        "mo": "ro"
-      };
-
-      return map[code] || code;
-    }
-
-    function withTimeout(promise, timeoutMs = 7000) {
-      return Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), timeoutMs))
-      ]);
-    }
-
-    async function translateViaGoogleApi(text, sourceLang = "en", targetLang = "bn") {
-      const endpoint = TRANSLATION_CONFIG.googleEndpoint?.trim();
-      if (!endpoint) return "";
-
-      try {
-        const response = await withTimeout(fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            text,
-            source: sourceLang,
-            target: targetLang
-          })
-        }), TRANSLATION_CONFIG.googleTimeoutMs);
-
-        if (!response.ok) return "";
-
-        const data = await response.json();
-        const translated =
-          data?.translatedText ||
-          data?.translation ||
-          data?.data?.translatedText ||
-          "";
-
-        return String(translated || "").trim();
-      } catch {
-        return "";
-      }
-    }
-
-    async function translateViaMyMemory(text, sourceLang = "en", targetLang = "bn") {
-      try {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(sourceLang)}|${encodeURIComponent(targetLang)}`;
-        const response = await withTimeout(fetch(url), TRANSLATION_CONFIG.myMemoryTimeoutMs);
-        if (!response.ok) return "";
-
-        const data = await response.json();
-        const translated = data?.responseData?.translatedText?.trim() || "";
-
-        if (!translated) return "";
-        return translated;
-      } catch {
-        return "";
-      }
-    }
-
-    async function translateEnglishToUserLanguage(text) {
-      const userCode = normalizeLangCodeForApis(currentUserLanguage?.code || "bn");
-      const sourceCode = "en";
-
-      if (!text || !String(text).trim()) return "";
-
-      let translated = "";
-
-      if (TRANSLATION_CONFIG.useGoogleFirst) {
-        translated = await translateViaGoogleApi(text, sourceCode, userCode);
-        if (translated && isMostlyNative(translated, currentUserLanguage?.code || userCode)) {
-          return translated;
-        }
-      }
-
-      translated = await translateViaMyMemory(text, sourceCode, userCode);
+    if (TRANSLATION_CONFIG.useGoogleFirst) {
+      translated = await translateViaGoogleApi(text, sourceCode, userCode);
       if (translated && isMostlyNative(translated, currentUserLanguage?.code || userCode)) {
         return translated;
       }
-
-      return "";
     }
 
-    function showToast(msg) {
-      const t = document.createElement('div');
-      t.textContent = msg;
-      t.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#f59e0b; color:white; padding:14px 28px; border-radius:9999px; font-weight:600; z-index:9999';
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 2200);
+    translated = await translateViaMyMemory(text, sourceCode, userCode);
+    if (translated && isMostlyNative(translated, currentUserLanguage?.code || userCode)) {
+      return translated;
     }
 
-    function updateServerCount() {
-      document.getElementById('server-count').textContent = savedWords.length;
-      document.getElementById('saved-count').textContent = `${savedWords.length} words saved`;
+    return "";
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#f59e0b; color:white; padding:14px 28px; border-radius:9999px; font-weight:600; z-index:9999';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2200);
+  }
+
+  function updateServerCount() {
+    document.getElementById('server-count').textContent = savedWords.length;
+    document.getElementById('saved-count').textContent = `${savedWords.length} words saved`;
+  }
+
+  function getKnownWords() {
+    const now = Date.now();
+    return savedWords.filter(w => w.permanentlyKnown || (w.due || 0) > now);
+  }
+
+  function getDueStudyWords() {
+    const now = Date.now();
+    return savedWords.filter(w => !w.permanentlyKnown && (w.due || 0) <= now);
+  }
+
+  function formatRemainingTime(ms) {
+    if (ms <= 0) return "Ready now";
+    const minutes = Math.floor(ms / 60000);
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    const mins = minutes % 60;
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''}${hours ? ` ${hours}h` : ''}`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins} minute${mins > 1 ? 's' : ''}`;
+  }
+
+  function updateKnownCounts() {
+    const knownCount = getKnownWords().length;
+    const studyKnown = document.getElementById('study-known-count');
+    const known = document.getElementById('known-count');
+    if (studyKnown) studyKnown.textContent = knownCount;
+    if (known) known.textContent = knownCount;
+  }
+
+  function renderWordChips(words, type) {
+    const list = dedupeStrings(words).slice(0, 8);
+    if (!list.length) return '<span class="text-slate-400 text-xs">Not available</span>';
+    return list.map(w => `<span class="word-chip ${type}">${escapeHTML(w)}</span>`).join('');
+  }
+
+  async function fetchMerriamRaw(word) {
+    if (!MERRIAM_API_KEY) return null;
+    try {
+      const url = `${MERRIAM_ENDPOINT}${encodeURIComponent(word)}?key=${encodeURIComponent(MERRIAM_API_KEY)}`;
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
     }
+  }
 
-    function getKnownWords() {
-      const now = Date.now();
-      return savedWords.filter(w => w.permanentlyKnown || (w.due || 0) > now);
-    }
+  async function fetchMerriamData(word) {
+    const data = await fetchMerriamRaw(word);
+    if (!Array.isArray(data) || !data.length || typeof data[0] === "string") return { raw: data, parsed: null };
 
-    function getDueStudyWords() {
-      const now = Date.now();
-      return savedWords.filter(w => !w.permanentlyKnown && (w.due || 0) <= now);
-    }
+    const entry = data.find(item => item && typeof item === "object" && Array.isArray(item.shortdef)) || data[0];
+    if (!entry || typeof entry !== "object") return { raw: data, parsed: null };
 
-    function formatRemainingTime(ms) {
-      if (ms <= 0) return "Ready now";
-      const minutes = Math.floor(ms / 60000);
-      const days = Math.floor(minutes / 1440);
-      const hours = Math.floor((minutes % 1440) / 60);
-      const mins = minutes % 60;
-      if (days > 0) return `${days} day${days > 1 ? 's' : ''}${hours ? ` ${hours}h` : ''}`;
-      if (hours > 0) return `${hours}h ${mins}m`;
-      return `${mins} minute${mins > 1 ? 's' : ''}`;
-    }
+    const shortdef = Array.isArray(entry.shortdef) ? entry.shortdef : [];
+    const meaning = normalizeDefinition(shortdef[0] || "");
+    const partOfSpeech = entry.fl || "";
 
-    function updateKnownCounts() {
-      const knownCount = getKnownWords().length;
-      const studyKnown = document.getElementById('study-known-count');
-      const known = document.getElementById('known-count');
-      if (studyKnown) studyKnown.textContent = knownCount;
-      if (known) known.textContent = knownCount;
-    }
+    let examples = [];
+    let synonyms = [];
+    let antonyms = [];
 
-    function renderWordChips(words, type) {
-      const list = dedupeStrings(words).slice(0, 8);
-      if (!list.length) return '<span class="text-slate-400 text-xs">Not available</span>';
-      return list.map(w => `<span class="word-chip ${type}">${escapeHTML(w)}</span>`).join('');
-    }
-
-    async function fetchMerriamRaw(word) {
-      if (!MERRIAM_API_KEY) return null;
-      try {
-        const url = `${MERRIAM_ENDPOINT}${encodeURIComponent(word)}?key=${encodeURIComponent(MERRIAM_API_KEY)}`;
-        const r = await fetch(url);
-        if (!r.ok) return null;
-        return await r.json();
-      } catch {
-        return null;
-      }
-    }
-
-    async function fetchMerriamData(word) {
-      const data = await fetchMerriamRaw(word);
-      if (!Array.isArray(data) || !data.length || typeof data[0] === "string") return { raw: data, parsed: null };
-
-      const entry = data.find(item => item && typeof item === "object" && Array.isArray(item.shortdef)) || data[0];
-      if (!entry || typeof entry !== "object") return { raw: data, parsed: null };
-
-      const shortdef = Array.isArray(entry.shortdef) ? entry.shortdef : [];
-      const meaning = normalizeDefinition(shortdef[0] || "");
-      const partOfSpeech = entry.fl || "";
-
-      let examples = [];
-      let synonyms = [];
-      let antonyms = [];
-
-      if (Array.isArray(entry.def)) {
-        for (const defBlock of entry.def) {
-          if (defBlock && Array.isArray(defBlock.sseq)) {
-            for (const sseqItem of defBlock.sseq) {
-              if (Array.isArray(sseqItem)) {
-                for (const senseWrap of sseqItem) {
-                  if (Array.isArray(senseWrap) && senseWrap[0] === "sense" && senseWrap[1]?.dt) {
-                    for (const dtItem of senseWrap[1].dt) {
-                      if (Array.isArray(dtItem) && dtItem[0] === "vis" && Array.isArray(dtItem[1])) {
-                        dtItem[1].forEach(v => {
-                          if (v?.t) examples.push(String(v.t).replace(/\{it\}|\{\/it\}/g, ""));
-                        });
-                      }
+    if (Array.isArray(entry.def)) {
+      for (const defBlock of entry.def) {
+        if (defBlock && Array.isArray(defBlock.sseq)) {
+          for (const sseqItem of defBlock.sseq) {
+            if (Array.isArray(sseqItem)) {
+              for (const senseWrap of sseqItem) {
+                if (Array.isArray(senseWrap) && senseWrap[0] === "sense" && senseWrap[1]?.dt) {
+                  for (const dtItem of senseWrap[1].dt) {
+                    if (Array.isArray(dtItem) && dtItem[0] === "vis" && Array.isArray(dtItem[1])) {
+                      dtItem[1].forEach(v => {
+                        if (v?.t) examples.push(String(v.t).replace(/\{it\}|\{\/it\}/g, ""));
+                      });
                     }
                   }
                 }
@@ -1175,60 +1132,81 @@
           }
         }
       }
-
-      if (Array.isArray(entry.meta?.syns)) entry.meta.syns.forEach(group => { if (Array.isArray(group)) synonyms.push(...group); });
-      if (Array.isArray(entry.meta?.ants)) entry.meta.ants.forEach(group => { if (Array.isArray(group)) antonyms.push(...group); });
-
-      return {
-        raw: data,
-        parsed: {
-          meaning: meaning || "",
-          partOfSpeech,
-          examples: dedupeStrings(examples),
-          synonyms: dedupeStrings(synonyms),
-          antonyms: dedupeStrings(antonyms),
-          nativeMeaning: ""
-        }
-      };
     }
 
-    async function fetchFreeDictionaryRaw(word) {
-      try {
-        const url = `${FREE_DICT_ENDPOINT}en/${encodeURIComponent(word)}?translations=true`;
-        const r = await fetch(url);
-        if (!r.ok) return null;
-        return await r.json();
-      } catch {
-        return null;
+    if (Array.isArray(entry.meta?.syns)) entry.meta.syns.forEach(group => { if (Array.isArray(group)) synonyms.push(...group); });
+    if (Array.isArray(entry.meta?.ants)) entry.meta.ants.forEach(group => { if (Array.isArray(group)) antonyms.push(...group); });
+
+    return {
+      raw: data,
+      parsed: {
+        meaning: meaning || "",
+        partOfSpeech,
+        examples: dedupeStrings(examples),
+        synonyms: dedupeStrings(synonyms),
+        antonyms: dedupeStrings(antonyms),
+        nativeMeaning: ""
       }
+    };
+  }
+
+  async function fetchFreeDictionaryRaw(word) {
+    try {
+      const url = `${FREE_DICT_ENDPOINT}en/${encodeURIComponent(word)}?translations=true`;
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
     }
+  }
 
-    async function fetchFreeDictionaryData(word) {
-      const data = await fetchFreeDictionaryRaw(word);
-      const entries = Array.isArray(data?.entries) ? data.entries : [];
-      if (!entries.length) return { raw: data, parsed: null };
+  async function fetchFreeDictionaryData(word) {
+    const data = await fetchFreeDictionaryRaw(word);
+    const entries = Array.isArray(data?.entries) ? data.entries : [];
+    if (!entries.length) return { raw: data, parsed: null };
 
-      let meaning = "";
-      let partOfSpeech = "";
-      let examples = [];
-      let nativeTranslations = [];
-      let synonyms = [];
-      let antonyms = [];
+    let meaning = "";
+    let partOfSpeech = "";
+    let examples = [];
+    let nativeTranslations = [];
+    let synonyms = [];
+    let antonyms = [];
 
-      for (const entry of entries) {
-        if (!partOfSpeech && entry?.partOfSpeech) partOfSpeech = entry.partOfSpeech;
-        if (Array.isArray(entry?.synonyms)) synonyms.push(...entry.synonyms.map(String));
-        if (Array.isArray(entry?.antonyms)) antonyms.push(...entry.antonyms.map(String));
+    for (const entry of entries) {
+      if (!partOfSpeech && entry?.partOfSpeech) partOfSpeech = entry.partOfSpeech;
+      if (Array.isArray(entry?.synonyms)) synonyms.push(...entry.synonyms.map(String));
+      if (Array.isArray(entry?.antonyms)) antonyms.push(...entry.antonyms.map(String));
 
-        const senses = Array.isArray(entry?.senses) ? entry.senses : [];
-        for (const sense of senses) {
-          if (!meaning && sense?.definition) meaning = normalizeDefinition(sense.definition);
-          if (Array.isArray(sense?.examples)) examples.push(...sense.examples.map(String));
-          if (Array.isArray(sense?.synonyms)) synonyms.push(...sense.synonyms.map(String));
-          if (Array.isArray(sense?.antonyms)) antonyms.push(...sense.antonyms.map(String));
+      const senses = Array.isArray(entry?.senses) ? entry.senses : [];
+      for (const sense of senses) {
+        if (!meaning && sense?.definition) meaning = normalizeDefinition(sense.definition);
+        if (Array.isArray(sense?.examples)) examples.push(...sense.examples.map(String));
+        if (Array.isArray(sense?.synonyms)) synonyms.push(...sense.synonyms.map(String));
+        if (Array.isArray(sense?.antonyms)) antonyms.push(...sense.antonyms.map(String));
 
-          if (Array.isArray(sense?.translations)) {
-            sense.translations.forEach(tr => {
+        if (Array.isArray(sense?.translations)) {
+          sense.translations.forEach(tr => {
+            const code = String(tr?.language?.code || "").toLowerCase();
+            const name = String(tr?.language?.name || "").toLowerCase();
+            const w = String(tr?.word || "").trim();
+            const userCode = currentUserLanguage?.code?.toLowerCase();
+            const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
+            if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
+              nativeTranslations.push(w);
+            }
+          });
+        }
+
+        const subsenses = Array.isArray(sense?.subsenses) ? sense.subsenses : [];
+        for (const sub of subsenses) {
+          if (!meaning && sub?.definition) meaning = normalizeDefinition(sub.definition);
+          if (Array.isArray(sub?.examples)) examples.push(...sub.examples.map(String));
+          if (Array.isArray(sub?.synonyms)) synonyms.push(...sub.synonyms.map(String));
+          if (Array.isArray(sub?.antonyms)) antonyms.push(...sub.antonyms.map(String));
+
+          if (Array.isArray(sub?.translations)) {
+            sub.translations.forEach(tr => {
               const code = String(tr?.language?.code || "").toLowerCase();
               const name = String(tr?.language?.name || "").toLowerCase();
               const w = String(tr?.word || "").trim();
@@ -1239,884 +1217,1143 @@
               }
             });
           }
-
-          const subsenses = Array.isArray(sense?.subsenses) ? sense.subsenses : [];
-          for (const sub of subsenses) {
-            if (!meaning && sub?.definition) meaning = normalizeDefinition(sub.definition);
-            if (Array.isArray(sub?.examples)) examples.push(...sub.examples.map(String));
-            if (Array.isArray(sub?.synonyms)) synonyms.push(...sub.synonyms.map(String));
-            if (Array.isArray(sub?.antonyms)) antonyms.push(...sub.antonyms.map(String));
-
-            if (Array.isArray(sub?.translations)) {
-              sub.translations.forEach(tr => {
-                const code = String(tr?.language?.code || "").toLowerCase();
-                const name = String(tr?.language?.name || "").toLowerCase();
-                const w = String(tr?.word || "").trim();
-                const userCode = currentUserLanguage?.code?.toLowerCase();
-                const aliases = currentUserLanguage?.aliases?.map(a => a.toLowerCase()) || [];
-                if (userCode && w && (code === userCode || aliases.some(a => name.includes(a) || code === a)) && isMostlyNative(w, userCode)) {
-                  nativeTranslations.push(w);
-                }
-              });
-            }
-          }
         }
       }
-
-      return {
-        raw: data,
-        parsed: {
-          meaning: meaning || "",
-          partOfSpeech,
-          examples: dedupeStrings(examples),
-          synonyms: dedupeStrings(synonyms),
-          antonyms: dedupeStrings(antonyms),
-          nativeMeaning: dedupeStrings(nativeTranslations)[0] || ""
-        }
-      };
     }
 
-    async function fetchNativeMeaningFallback(word, englishMeaning = "") {
-      const firstTry = await translateEnglishToUserLanguage(word);
-      if (firstTry) return firstTry;
-
-      if (englishMeaning) {
-        const secondTry = await translateEnglishToUserLanguage(englishMeaning);
-        if (secondTry) return secondTry;
+    return {
+      raw: data,
+      parsed: {
+        meaning: meaning || "",
+        partOfSpeech,
+        examples: dedupeStrings(examples),
+        synonyms: dedupeStrings(synonyms),
+        antonyms: dedupeStrings(antonyms),
+        nativeMeaning: dedupeStrings(nativeTranslations)[0] || ""
       }
+    };
+  }
 
-      return "";
-    }
+  function normalizeSurfaceWord(word) {
+    let w = String(word || "").toLowerCase().trim();
+    w = w.replace(/[’‘]/g, "'");
 
-    async function getDictionaryData(word) {
-      const [freeResult, merriamResult] = await Promise.all([
-        fetchFreeDictionaryData(word),
-        fetchMerriamData(word)
-      ]);
+    const contractionMap = {
+      "don't": "do",
+      "doesn't": "do",
+      "didn't": "do",
+      "can't": "can",
+      "couldn't": "could",
+      "won't": "will",
+      "wouldn't": "would",
+      "shouldn't": "should",
+      "isn't": "be",
+      "aren't": "be",
+      "wasn't": "be",
+      "weren't": "be",
+      "haven't": "have",
+      "hasn't": "have",
+      "hadn't": "have",
+      "i'm": "i",
+      "i've": "i",
+      "i'll": "i",
+      "you're": "you",
+      "you've": "you",
+      "you'll": "you",
+      "they're": "they",
+      "they've": "they",
+      "they'll": "they",
+      "we're": "we",
+      "we've": "we",
+      "we'll": "we",
+      "it's": "it",
+      "that's": "that",
+      "there's": "there",
+      "what's": "what",
+      "she's": "she",
+      "he's": "he"
+    };
 
-      const primary = freeResult?.parsed || null;
-      const secondary = merriamResult?.parsed || null;
+    if (contractionMap[w]) return contractionMap[w];
 
-      const merged = {
-        meaning: primary?.meaning || secondary?.meaning || "",
-        partOfSpeech: primary?.partOfSpeech || secondary?.partOfSpeech || "",
-        examples: dedupeStrings([...(primary?.examples || []), ...(secondary?.examples || [])]),
-        synonyms: dedupeStrings([...(primary?.synonyms || []), ...(secondary?.synonyms || [])]),
-        antonyms: dedupeStrings([...(primary?.antonyms || []), ...(secondary?.antonyms || [])]),
-        nativeMeaning: primary?.nativeMeaning || secondary?.nativeMeaning || ""
-      };
+    if (w.endsWith("'s")) return w.slice(0, -2);
+    if (w.endsWith("s'")) return w.slice(0, -1);
 
-      if (!merged.meaning) merged.meaning = makeEasyMeaningFallback(word);
-      if (!merged.nativeMeaning) merged.nativeMeaning = await fetchNativeMeaningFallback(word, merged.meaning);
-      if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
+    return w;
+  }
 
-      const pronunciation = extractPronunciationData(freeResult?.raw, merriamResult?.raw);
+function sanitizeHeadword(hw) {
+  if (!hw) return "";
+  return String(hw)
+    .toLowerCase()
+    .replace(/\*/g, "")
+    .replace(/[’‘]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-      return {
-        ...merged,
-        ...pronunciation
-      };
-    }
+async function getBaseFormFromMerriam(word) {
+  const data = await fetchMerriamRaw(word);
+  if (!Array.isArray(data) || !data.length) return "";
 
-    function chooseBestApiExamples(apiExamples) {
-      return dedupeStrings(apiExamples).filter(ex => ex.length > 8).slice(0, 6);
-    }
+  const entry = data.find(item => item && typeof item === "object" && item.hwi?.hw) || null;
+  if (!entry) return "";
 
-    function generateSmartExamples(word, apiExamples) {
-      const pool = chooseBestApiExamples(apiExamples);
-      let easy = pool[0] || `I use the word "${word}" in a simple sentence.`;
-      let medium = pool.find(x => x.toLowerCase() !== easy.toLowerCase()) || `We often use "${word}" in academic reading and writing.`;
-      let hard = pool.find(x => x.toLowerCase() !== easy.toLowerCase() && x.toLowerCase() !== medium.toLowerCase()) || `Researchers may use "${word}" in a more precise and technical way.`;
+  const headword = sanitizeHeadword(entry.hwi.hw);
+  if (!headword) return "";
 
-      if (medium.toLowerCase() === easy.toLowerCase()) medium = `The meaning of "${word}" becomes clearer when used in context.`;
-      if (hard.toLowerCase() === easy.toLowerCase() || hard.toLowerCase() === medium.toLowerCase()) hard = `Advanced readers may notice a more nuanced use of "${word}".`;
+  return headword;
+}
 
-      return { easy, medium, hard };
-    }
+  async function getBaseFormFromFreeDictionary(word) {
+    const data = await fetchFreeDictionaryRaw(word);
+    const entries = Array.isArray(data?.entries) ? data.entries : [];
+    if (!entries.length) return "";
 
-    async function generateFlashcards() {
-      if (!currentUserLanguage) {
-        openLanguageGate(true);
-        return;
+    for (const entry of entries) {
+      const candidates = [
+        entry?.lemma,
+        entry?.headword,
+        entry?.word,
+        entry?.canonicalForm,
+        entry?.base,
+        entry?.sourceWord
+      ].filter(Boolean);
+
+      for (const c of candidates) {
+        const cleaned = sanitizeHeadword(c);
+        if (cleaned) return cleaned;
       }
+    }
 
-      const passage = document.getElementById('passage').value.trim();
-      if (!passage) return alert("Paste a passage first!");
+    return "";
+  }
 
-      const loadingEl = document.getElementById('loading');
-      const loadingText = document.getElementById('loading-text');
-      loadingEl.classList.remove('hidden');
-      loadingText.textContent = 'Extracting words from passage...';
+// new line 
 
-      const sentenceRegex = /[^.!?]+[.!?]+|[^.!?]+$/g;
-      const rawSentences = passage.match(sentenceRegex) || [passage];
-      const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 6);
+function looksLikeRealBaseForm(original, candidate) {
+  const o = String(original || "").toLowerCase().trim();
+  const c = String(candidate || "").toLowerCase().trim();
 
-      const wordRegex = /\b[a-zA-Z]+\b/g;
-      let surfaceWords = [...new Set((passage.match(wordRegex) || []).map(w => w.toLowerCase()))];
+  if (!c) return false;
 
-      if (document.getElementById('filter-easy').checked) {
-        surfaceWords = surfaceWords.filter(w => !commonEasyWords.has(w) && w.length > 2);
-      }
+  // যদি same থাকে → useful base না
+  if (o === c) return false;
 
-      const useLemmas = document.getElementById('lemmatize').checked;
-      const keyToSurfaces = new Map();
+  // খুব ছোট বা broken হলে reject
+  if (c.length < 2) return false;
 
-      surfaceWords.forEach(s => {
-        const key = useLemmas ? simpleLemmatize(s) : s;
-        if (!keyToSurfaces.has(key)) keyToSurfaces.set(key, new Set());
-        keyToSurfaces.get(key).add(s);
+  return true;
+}
+
+// new line 
+
+
+
+function safeRuleBasedLemmatize(word) {
+  const w = String(word || "").toLowerCase().trim();
+  if (!w) return "";
+
+  const irregulars = {
+    children: "child",
+    men: "man",
+    women: "woman",
+    feet: "foot",
+    teeth: "tooth",
+    mice: "mouse",
+    geese: "goose",
+
+    was: "be",
+    were: "be",
+    is: "be",
+    am: "be",
+    are: "be",
+
+    has: "have",
+    had: "have",
+    does: "do",
+    did: "do",
+
+    went: "go",
+    gone: "go",
+    came: "come",
+    seen: "see",
+    saw: "see",
+    found: "find",
+    took: "take",
+    taken: "take",
+    gave: "give",
+    given: "give",
+    made: "make",
+    done: "do",
+    knew: "know",
+    known: "know",
+    thought: "think"
+  };
+
+  if (irregulars[w]) return irregulars[w];
+  if (w.length <= 3) return w;
+
+  // plurals
+  if (w.endsWith("ies") && w.length > 4) {
+    return w.slice(0, -3) + "y"; // stories -> story
+  }
+
+  if (/(xes|zes|ches|shes|sses)$/.test(w) && w.length > 4) {
+    return w.slice(0, -2); // boxes -> box, watches -> watch
+  }
+
+  if (w.endsWith("s") && !w.endsWith("ss") && !w.endsWith("us") && !w.endsWith("is") && w.length > 3) {
+    return w.slice(0, -1); // animals -> animal
+  }
+
+  // -ing forms
+  if (w.endsWith("ing") && w.length > 5) {
+    let stem = w.slice(0, -3);
+
+    // double consonant: running -> run
+    if (
+      stem.length >= 3 &&
+      stem[stem.length - 1] === stem[stem.length - 2] &&
+      !/[aeiou]/.test(stem[stem.length - 1])
+    ) {
+      stem = stem.slice(0, -1);
+    }
+
+    // words that usually need +e back
+    // making -> make, writing -> write
+    if (/(mak|tak|giv|writ|driv|rid|com|shap|lov|mov|us|clos|hop|not|eas|forc)$/.test(stem)) {
+      return stem + "e";
+    }
+
+    // talking, walking, reading, playing -> keep plain stem
+    // IMPORTANT: don't cut if result looks too short or suspicious
+    if (stem.length < 4) return w;
+
+    // protect common nouns ending with -ning/-ring style
+    // morning -> keep morning
+    if (/(rn|ng)$/.test(stem) && !/(talk|walk|read|play|look|bring|sing|call|tell|grow)$/.test(stem)) {
+      return w;
+    }
+
+    return stem;
+  }
+
+  // -ed forms
+  if (w.endsWith("ied") && w.length > 4) {
+    return w.slice(0, -3) + "y"; // studied -> study
+  }
+
+  if (w.endsWith("ed") && w.length > 4) {
+    let stem = w.slice(0, -2);
+
+    // stopped -> stop
+    if (
+      stem.length >= 3 &&
+      stem[stem.length - 1] === stem[stem.length - 2] &&
+      !/[aeiou]/.test(stem[stem.length - 1])
+    ) {
+      stem = stem.slice(0, -1);
+    }
+
+    // decided -> decide, explored -> explore
+    if (/(id|at|iz|ur|or|ct|iv|os)$/.test(stem)) {
+      return stem + "e";
+    }
+
+    if (stem.length < 3) return w;
+    return stem;
+  }
+
+  return w;
+}
+
+  async function resolveDisplayedWord(surfaceWord, useBaseForms) {
+  const normalized = normalizeSurfaceWord(surfaceWord);
+
+  // Base OFF → original word
+  if (!useBaseForms) return normalized;
+
+  // Cache check
+  if (baseFormCache.has(normalized)) {
+    return baseFormCache.get(normalized);
+  }
+
+  let base = "";
+
+  // 1️⃣ Merriam API
+  base = await getBaseFormFromMerriam(normalized);
+
+  // 2️⃣ Free Dictionary fallback
+  if (!base) {
+    base = await getBaseFormFromFreeDictionary(normalized);
+  }
+
+  // ❗ 3️⃣ FINAL fallback = original word (NO CUTTING)
+  if (!base) {
+    base = normalized;
+  }
+
+  baseFormCache.set(normalized, base);
+  return base;
+}
+
+  async function fetchNativeMeaningFallback(word, englishMeaning = "") {
+    const firstTry = await translateEnglishToUserLanguage(word);
+    if (firstTry) return firstTry;
+
+    if (englishMeaning) {
+      const secondTry = await translateEnglishToUserLanguage(englishMeaning);
+      if (secondTry) return secondTry;
+    }
+
+    return "";
+  }
+
+  async function getDictionaryData(word) {
+    const [freeResult, merriamResult] = await Promise.all([
+      fetchFreeDictionaryData(word),
+      fetchMerriamData(word)
+    ]);
+
+    const primary = freeResult?.parsed || null;
+    const secondary = merriamResult?.parsed || null;
+
+    const merged = {
+      meaning: primary?.meaning || secondary?.meaning || "",
+      partOfSpeech: primary?.partOfSpeech || secondary?.partOfSpeech || "",
+      examples: dedupeStrings([...(primary?.examples || []), ...(secondary?.examples || [])]),
+      synonyms: dedupeStrings([...(primary?.synonyms || []), ...(secondary?.synonyms || [])]),
+      antonyms: dedupeStrings([...(primary?.antonyms || []), ...(secondary?.antonyms || [])]),
+      nativeMeaning: primary?.nativeMeaning || secondary?.nativeMeaning || ""
+    };
+
+    if (!merged.meaning) merged.meaning = makeEasyMeaningFallback(word);
+    if (!merged.nativeMeaning) merged.nativeMeaning = await fetchNativeMeaningFallback(word, merged.meaning);
+    if (!merged.nativeMeaning) merged.nativeMeaning = `[${currentUserLanguage?.native || 'Translation'} not available]`;
+
+    const pronunciation = extractPronunciationData(freeResult?.raw, merriamResult?.raw);
+
+    return {
+      ...merged,
+      ...pronunciation
+    };
+  }
+
+  function chooseBestApiExamples(apiExamples) {
+    return dedupeStrings(apiExamples).filter(ex => ex.length > 8).slice(0, 6);
+  }
+
+  function generateSmartExamples(word, apiExamples) {
+    const pool = chooseBestApiExamples(apiExamples);
+    let easy = pool[0] || `I use the word "${word}" in a simple sentence.`;
+    let medium = pool.find(x => x.toLowerCase() !== easy.toLowerCase()) || `We often use "${word}" in academic reading and writing.`;
+    let hard = pool.find(x => x.toLowerCase() !== easy.toLowerCase() && x.toLowerCase() !== medium.toLowerCase()) || `Researchers may use "${word}" in a more precise and technical way.`;
+
+    if (medium.toLowerCase() === easy.toLowerCase()) medium = `The meaning of "${word}" becomes clearer when used in context.`;
+    if (hard.toLowerCase() === easy.toLowerCase() || hard.toLowerCase() === medium.toLowerCase()) hard = `Advanced readers may notice a more nuanced use of "${word}".`;
+
+    return { easy, medium, hard };
+  }
+
+  async function generateFlashcards() {
+    if (!currentUserLanguage) {
+      openLanguageGate(true);
+      return;
+    }
+
+    const passage = document.getElementById('passage').value.trim();
+    if (!passage) return alert("Paste a passage first!");
+
+    const loadingEl = document.getElementById('loading');
+    const loadingText = document.getElementById('loading-text');
+    loadingEl.classList.remove('hidden');
+    loadingText.textContent = 'Extracting words from passage...';
+
+    const sentenceRegex = /[^.!?]+[.!?]+|[^.!?]+$/g;
+    const rawSentences = passage.match(sentenceRegex) || [passage];
+    const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 6);
+
+    const wordRegex = /[A-Za-z]+(?:['’][A-Za-z]+)*/g;
+    let surfaceWords = [...new Set((passage.match(wordRegex) || []).map(w => w.trim()))];
+
+    if (document.getElementById('filter-easy').checked) {
+      surfaceWords = surfaceWords.filter(w => {
+        const n = normalizeSurfaceWord(w);
+        return !commonEasyWords.has(n) && n.length > 2;
       });
-
-      const cardKeys = Array.from(keyToSurfaces.keys()).sort();
-      cards = [];
-
-      for (let i = 0; i < cardKeys.length; i++) {
-        const key = cardKeys[i];
-        const surfaces = keyToSurfaces.get(key);
-        const matching = sentences.filter(s => sentenceContainsWord(s, surfaces));
-        if (!matching.length) continue;
-
-        loadingText.textContent = `Fetching word data: ${key} (${i + 1}/${cardKeys.length})`;
-
-        const dictData = await getDictionaryData(key);
-        const examples = generateSmartExamples(key, dictData.examples);
-
-        cards.push({
-          front: key,
-          nativeMeaning: dictData.nativeMeaning,
-          back: matching.join('\n\n'),
-          meaning: dictData.meaning,
-          partOfSpeech: dictData.partOfSpeech,
-          synonyms: dictData.synonyms,
-          antonyms: dictData.antonyms,
-          examples,
-          accent: 'us',
-          pronunciationText: dictData.pronunciationText || '',
-          pronunciationAudioUS: dictData.pronunciationAudioUS || '',
-          pronunciationAudioUK: dictData.pronunciationAudioUK || ''
-        });
-      }
-
-      loadingEl.classList.add('hidden');
-
-      if (!cards.length) return alert("No words left after filters!");
-
-      document.getElementById('input-screen').classList.add('hidden');
-      document.getElementById('study-screen').classList.remove('hidden');
-
-      currentIndex = 0;
-      renderCurrentCard();
-      updateServerCount();
-      updateKnownCounts();
     }
 
-    function pronunciationRowHTML(card, sourceType, idx) {
-      const accent = card.accent || 'us';
-      const accentName = accent === 'uk' ? 'UK' : 'US';
-      return `
-        <div class="pronunciation-bar">
-          <div class="flex-1 min-w-0">
-            <div class="text-[11px] uppercase tracking-widest text-slate-500 mb-1">Pronunciation</div>
-            <div class="text-slate-700 text-sm font-medium truncate">${escapeHTML(card.pronunciationText || 'Listen to hear pronunciation')}</div>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <div class="accent-switch">
-              <button class="accent-pill ${accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('${sourceType}', ${idx}, 'us')">US</button>
-              <button class="accent-pill ${accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('${sourceType}', ${idx}, 'uk')">UK</button>
-            </div>
-            <button
-              class="pronounce-btn"
-              onclick="event.stopPropagation(); triggerPronunciation('${sourceType}', ${idx})"
-              title="Play ${accentName} pronunciation"
-              aria-label="Play pronunciation"
-            >🔊</button>
-          </div>
+    const useBaseForms = document.getElementById('lemmatize').checked;
+    const keyToSurfaces = new Map();
+
+    for (let i = 0; i < surfaceWords.length; i++) {
+      const surface = surfaceWords[i];
+
+      loadingText.textContent = useBaseForms
+        ? `Checking base form: ${surface} (${i + 1}/${surfaceWords.length})`
+        : `Collecting word: ${surface} (${i + 1}/${surfaceWords.length})`;
+
+      const key = await resolveDisplayedWord(surface, useBaseForms);
+      const normalizedSurface = normalizeSurfaceWord(surface);
+
+      if (!keyToSurfaces.has(key)) keyToSurfaces.set(key, new Set());
+      keyToSurfaces.get(key).add(normalizedSurface);
+
+      if (useBaseForms && normalizedSurface !== key) {
+        keyToSurfaces.get(key).add(surface.toLowerCase().replace(/[’‘]/g, "'"));
+      }
+    }
+
+    const cardKeys = Array.from(keyToSurfaces.keys()).sort();
+    cards = [];
+
+    for (let i = 0; i < cardKeys.length; i++) {
+      const key = cardKeys[i];
+      const surfaces = keyToSurfaces.get(key);
+      const matching = sentences.filter(s => sentenceContainsWord(s.replace(/[’‘]/g, "'"), surfaces));
+      if (!matching.length) continue;
+
+      loadingText.textContent = `Fetching word data: ${key} (${i + 1}/${cardKeys.length})`;
+
+      const dictData = await getDictionaryData(key);
+      const examples = generateSmartExamples(key, dictData.examples);
+
+      cards.push({
+        front: key,
+        nativeMeaning: dictData.nativeMeaning,
+        back: matching.join('\n\n'),
+        meaning: dictData.meaning,
+        partOfSpeech: dictData.partOfSpeech,
+        synonyms: dictData.synonyms,
+        antonyms: dictData.antonyms,
+        examples,
+        accent: 'us',
+        pronunciationText: dictData.pronunciationText || '',
+        pronunciationAudioUS: dictData.pronunciationAudioUS || '',
+        pronunciationAudioUK: dictData.pronunciationAudioUK || ''
+      });
+    }
+
+    loadingEl.classList.add('hidden');
+
+    if (!cards.length) return alert("No words left after filters!");
+
+    document.getElementById('input-screen').classList.add('hidden');
+    document.getElementById('study-screen').classList.remove('hidden');
+
+    currentIndex = 0;
+    renderCurrentCard();
+    updateServerCount();
+    updateKnownCounts();
+  }
+
+  function pronunciationRowHTML(card, sourceType, idx) {
+    const accent = card.accent || 'us';
+    const accentName = accent === 'uk' ? 'UK' : 'US';
+    return `
+      <div class="pronunciation-bar">
+        <div class="flex-1 min-w-0">
+          <div class="text-[11px] uppercase tracking-widest text-slate-500 mb-1">Pronunciation</div>
+          <div class="text-slate-700 text-sm font-medium truncate">${escapeHTML(card.pronunciationText || 'Listen to hear pronunciation')}</div>
         </div>
-      `;
-    }
-
-    function renderCurrentCard() {
-      const card = cards[currentIndex];
-      document.getElementById('card-number').textContent = currentIndex + 1;
-      document.getElementById('total-cards').textContent = cards.length;
-      document.getElementById('front-word').textContent = card.front;
-
-      document.getElementById('back-content').innerHTML = `
-        <div class="native-card mb-3">
-          <div class="text-xs uppercase tracking-widest text-emerald-700 mb-2">${escapeHTML(getMeaningLabel())}</div>
-          <div class="native-text text-emerald-900">${escapeHTML(card.nativeMeaning)}</div>
-        </div>
-
-        <div class="english-card mb-3">
-          <div class="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2">📖 Meaning in English</div>
-          <div class="text-slate-800 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Meaning not available')}</div>
-          <div class="mt-2 text-[11px] text-slate-500">
-            ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="accent-switch">
+            <button class="accent-pill ${accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('${sourceType}', ${idx}, 'us')">US</button>
+            <button class="accent-pill ${accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('${sourceType}', ${idx}, 'uk')">UK</button>
           </div>
-          ${pronunciationRowHTML(card, 'passage', currentIndex)}
+          <button
+            class="pronounce-btn"
+            onclick="event.stopPropagation(); triggerPronunciation('${sourceType}', ${idx})"
+            title="Play ${accentName} pronunciation"
+            aria-label="Play pronunciation"
+          >🔊</button>
         </div>
+      </div>
+    `;
+  }
 
-        <div class="mini-card mb-3">
-          <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
-          <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+  function renderCurrentCard() {
+    const card = cards[currentIndex];
+    document.getElementById('card-number').textContent = currentIndex + 1;
+    document.getElementById('total-cards').textContent = cards.length;
+    document.getElementById('front-word').textContent = card.front;
+
+    document.getElementById('back-content').innerHTML = `
+      <div class="native-card mb-3">
+        <div class="text-xs uppercase tracking-widest text-emerald-700 mb-2">${escapeHTML(getMeaningLabel())}</div>
+        <div class="native-text text-emerald-900">${escapeHTML(card.nativeMeaning)}</div>
+      </div>
+
+      <div class="english-card mb-3">
+        <div class="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2">📖 Meaning in English</div>
+        <div class="text-slate-800 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Meaning not available')}</div>
+        <div class="mt-2 text-[11px] text-slate-500">
+          ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
         </div>
+        ${pronunciationRowHTML(card, 'passage', currentIndex)}
+      </div>
 
-        <div class="mini-card mb-3">
-          <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
-          <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+      <div class="mini-card mb-3">
+        <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
+        <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+      </div>
+
+      <div class="mini-card mb-3">
+        <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
+        <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="text-xs font-medium text-slate-500 mb-3 tracking-widest">📄 CONTEXT FROM PASSAGE</div>
+        <div class="text-slate-700 leading-relaxed text-[13px] whitespace-pre-line">
+          ${card.back.split('\n\n').map(s => `<div class="mb-3">${highlightWord(s, card.front)}</div>`).join('')}
         </div>
+      </div>
+    `;
 
-        <div class="mini-card">
-          <div class="text-xs font-medium text-slate-500 mb-3 tracking-widest">📄 CONTEXT FROM PASSAGE</div>
-          <div class="text-slate-700 leading-relaxed text-[13px] whitespace-pre-line">
-            ${card.back.split('\n\n').map(s => `<div class="mb-3">${highlightWord(s, card.front)}</div>`).join('')}
-          </div>
-        </div>
-      `;
+    isFlipped = false;
+    document.getElementById('flashcard').classList.remove('flipped');
+  }
 
-      isFlipped = false;
-      document.getElementById('flashcard').classList.remove('flipped');
+  function flipCard() {
+    isFlipped = !isFlipped;
+    document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
+  }
+
+  function nextCard() {
+    currentIndex = (currentIndex + 1) % cards.length;
+    renderCurrentCard();
+  }
+
+  function prevCard() {
+    currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+    renderCurrentCard();
+  }
+
+  function markEasy() {
+    nextCard();
+  }
+
+  function setAccent(sourceType, index, accent) {
+    if (sourceType === 'passage') {
+      cards[index].accent = accent;
+      if (index === currentIndex && !document.getElementById('study-screen').classList.contains('hidden')) renderCurrentCard();
+      return;
     }
 
-    function flipCard() {
-      isFlipped = !isFlipped;
-      document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
-    }
-
-    function nextCard() {
-      currentIndex = (currentIndex + 1) % cards.length;
-      renderCurrentCard();
-    }
-
-    function prevCard() {
-      currentIndex = (currentIndex - 1 + cards.length) % cards.length;
-      renderCurrentCard();
-    }
-
-    function markEasy() {
-      nextCard();
-    }
-
-    function setAccent(sourceType, index, accent) {
-      if (sourceType === 'passage') {
-        cards[index].accent = accent;
-        if (index === currentIndex && !document.getElementById('study-screen').classList.contains('hidden')) renderCurrentCard();
-        return;
-      }
-
-      if (sourceType === 'server') {
-        savedWords[index].accent = accent;
-        persistSavedWords();
-        renderServerList();
-        return;
-      }
-
-      if (sourceType === 'studyNow') {
-        const card = serverStudyCards[index];
-        if (!card) return;
-        card.accent = accent;
-        const original = savedWords.find(s => s.front === card.front);
-        if (original) original.accent = accent;
-        persistSavedWords();
-        renderServerStudyCard();
-      }
-    }
-
-    function triggerPronunciation(sourceType, index) {
-      if (sourceType === 'passage') {
-        const card = cards[index];
-        if (!card) return;
-        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
-        return;
-      }
-
-      if (sourceType === 'server') {
-        const card = savedWords[index];
-        if (!card) return;
-        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
-        return;
-      }
-
-      if (sourceType === 'studyNow') {
-        const card = serverStudyCards[index];
-        if (!card) return;
-        playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
-      }
-    }
-
-    function pushToServer() {
-      const card = cards[currentIndex];
-      if (savedWords.some(w => w.front === card.front)) return alert("Already saved!");
-
-      savedWords.unshift({
-        front: card.front,
-        nativeMeaning: card.nativeMeaning,
-        back: card.back,
-        meaning: card.meaning,
-        partOfSpeech: card.partOfSpeech,
-        synonyms: card.synonyms,
-        antonyms: card.antonyms,
-        examples: card.examples,
-        editingMeaning: false,
-        easyStreak: 0,
-        permanentlyKnown: false,
-        date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
-        due: Date.now(),
-        interval: 0,
-        accent: card.accent || 'us',
-        pronunciationText: card.pronunciationText || '',
-        pronunciationAudioUS: card.pronunciationAudioUS || '',
-        pronunciationAudioUK: card.pronunciationAudioUK || ''
-      });
-
-      persistSavedWords();
-      showToast("✅ Pushed to server!");
-    }
-
-    function pushAllToServer() {
-      let added = 0;
-      cards.forEach(card => {
-        if (!savedWords.some(w => w.front === card.front)) {
-          savedWords.unshift({
-            front: card.front,
-            nativeMeaning: card.nativeMeaning,
-            back: card.back,
-            meaning: card.meaning,
-            partOfSpeech: card.partOfSpeech,
-            synonyms: card.synonyms,
-            antonyms: card.antonyms,
-            examples: card.examples,
-            editingMeaning: false,
-            easyStreak: 0,
-            permanentlyKnown: false,
-            date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
-            due: Date.now(),
-            interval: 0,
-            accent: card.accent || 'us',
-            pronunciationText: card.pronunciationText || '',
-            pronunciationAudioUS: card.pronunciationAudioUS || '',
-            pronunciationAudioUK: card.pronunciationAudioUK || ''
-          });
-          added++;
-        }
-      });
-
-      persistSavedWords();
-      showToast(`✅ ${added} words added to server!`);
-      hideAllCards();
-    }
-
-    function deleteAllFromServer() {
-      if (!savedWords.length) {
-        alert("Server is already empty!");
-        return;
-      }
-
-      const ok = confirm("Are you sure you want to delete ALL saved vocabulary from server?");
-      if (!ok) return;
-
-      savedWords = [];
-      persistSavedWords();
-      openServerModal();
-      showToast("🗑️ All vocabulary deleted from server!");
-    }
-
-    function toggleMeaningEdit(index) {
-      savedWords[index].editingMeaning = !savedWords[index].editingMeaning;
-      persistSavedWords();
-      openServerModal();
-      if (savedWords[index].editingMeaning) {
-        setTimeout(() => {
-          const input = document.getElementById(`edit-native-${index}`);
-          if (input) {
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
-          }
-        }, 0);
-      }
-    }
-
-    function cancelMeaningEdit(index) {
-      savedWords[index].editingMeaning = false;
-      persistSavedWords();
-      openServerModal();
-    }
-
-    function saveMeaningEdit(index) {
-      const input = document.getElementById(`edit-native-${index}`);
-      if (!input) return;
-
-      const rawValue = input.value;
-      const cleaned = rawValue.trim().replace(/[ ]{2,}/g, ' ');
-      if (!cleaned) {
-        alert(`${getMeaningLabel()} cannot be empty.`);
-        return;
-      }
-
-      savedWords[index].nativeMeaning = cleaned;
-      savedWords[index].editingMeaning = false;
-      persistSavedWords();
-      openServerModal();
-      showToast("✅ Meaning updated!");
-    }
-
-    function exportServerCSV() {
-      if (!savedWords.length) return alert("Nothing to export!");
-      let csv = `English\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\tEasy Example\tMedium Example\tHard Example\tDue\tEasy Streak\tPermanent Known\tDate\n`;
-
-      savedWords.forEach(item => {
-        const safeBack = (item.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
-        const safeMeaning = (item.meaning || '').replace(/\t/g, ' ');
-        const safeSynonyms = (item.synonyms || []).join(', ').replace(/\t/g, ' ');
-        const safeAntonyms = (item.antonyms || []).join(', ').replace(/\t/g, ' ');
-        const dueText = item.permanentlyKnown ? 'Permanent' : new Date(item.due || Date.now()).toLocaleString();
-        const ex = item.examples || {};
-        csv += `"${item.front}"\t"${item.nativeMeaning}"\t"${safeMeaning}"\t"${item.pronunciationText || ''}"\t"${item.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\t"${(ex.easy || '').replace(/\t/g,' ')}"\t"${(ex.medium || '').replace(/\t/g,' ')}"\t"${(ex.hard || '').replace(/\t/g,' ')}"\t"${dueText}"\t"${item.easyStreak || 0}"\t"${item.permanentlyKnown ? 'Yes' : 'No'}"\t"${item.date || ''}"\n`;
-      });
-
-      const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'My_SRS_Server.csv';
-      a.click();
-    }
-
-    function downloadForAnki() {
-      let csv = `English (Base Form)\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\n`;
-      cards.forEach(card => {
-        const safeBack = (card.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
-        const safeMeaning = (card.meaning || '').replace(/\t/g, ' ');
-        const safeSynonyms = (card.synonyms || []).join(', ').replace(/\t/g, ' ');
-        const safeAntonyms = (card.antonyms || []).join(', ').replace(/\t/g, ' ');
-        csv += `"${card.front}"\t"${card.nativeMeaning}"\t"${safeMeaning}"\t"${card.pronunciationText || ''}"\t"${card.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'passage_vocabulary.csv';
-      a.click();
-    }
-
-    function showAllCards() {
-      const container = document.getElementById('all-cards-list');
-      container.innerHTML = '';
-
-      cards.forEach((card, i) => {
-        const div = document.createElement('div');
-        div.className = 'bg-slate-800 rounded-2xl p-5 hover:bg-slate-700 transition cursor-pointer';
-        div.innerHTML = `
-          <div class="flex gap-4 items-start">
-            <div class="font-mono text-emerald-400 text-xl font-bold">${i+1}</div>
-            <div class="flex-1">
-              <div class="flex items-center justify-between gap-3">
-                <div class="font-semibold text-lg">${escapeHTML(card.front)}</div>
-                <div class="flex items-center gap-2">
-                  <div class="accent-switch">
-                    <button class="accent-pill ${card.accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('passage', ${i}, 'us')">US</button>
-                    <button class="accent-pill ${card.accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('passage', ${i}, 'uk')">UK</button>
-                  </div>
-                  <button class="pronounce-btn !w-9 !h-9" onclick="event.stopPropagation(); triggerPronunciation('passage', ${i})">🔊</button>
-                </div>
-              </div>
-              <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(card.nativeMeaning)}</div>
-              <div class="text-slate-400 text-xs mt-1">${escapeHTML(card.pronunciationText || '')}</div>
-              <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML((card.meaning || '').substring(0,90))}${(card.meaning || '').length > 90 ? '...' : ''}</div>
-              <div class="text-slate-400 text-xs mt-2">${escapeHTML(card.partOfSpeech || '')}</div>
-              <div class="mt-3">
-                <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">Synonyms</div>
-                <div>${renderWordChips(card.synonyms, 'synonym')}</div>
-              </div>
-              <div class="mt-3">
-                <div class="text-[11px] uppercase tracking-widest text-red-300 mb-1">Antonyms</div>
-                <div>${renderWordChips(card.antonyms, 'antonym')}</div>
-              </div>
-            </div>
-          </div>
-        `;
-        div.onclick = () => {
-          currentIndex = i;
-          hideAllCards();
-          renderCurrentCard();
-        };
-        container.appendChild(div);
-      });
-
-      document.getElementById('all-cards-modal').classList.remove('hidden');
-    }
-
-    function hideAllCards() {
-      document.getElementById('all-cards-modal').classList.add('hidden');
-    }
-
-    function getServerSearchQuery() {
-      return (document.getElementById('server-search')?.value || '').trim().toLowerCase();
-    }
-
-    function renderServerList() {
-      const container = document.getElementById('server-list');
-      const q = getServerSearchQuery();
-      container.innerHTML = '';
-
-      let list = savedWords;
-      if (q) {
-        list = savedWords.filter(item => {
-          const hay = [
-            item.front,
-            item.nativeMeaning,
-            item.meaning,
-            item.pronunciationText,
-            ...(item.synonyms || []),
-            ...(item.antonyms || [])
-          ].join(' ').toLowerCase();
-          return hay.includes(q);
-        });
-      }
-
-      if (!list.length) {
-        container.innerHTML = `<div class="text-center py-12 text-slate-400">${q ? 'No matching vocabulary found.' : 'Your server is empty.<br>Push some words!'}</div>`;
-        return;
-      }
-
-      list.forEach(item => {
-        const realIndex = savedWords.findIndex(w => w.front === item.front);
-        const editing = !!savedWords[realIndex].editingMeaning;
-        const dueInfo = item.permanentlyKnown
-          ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
-          : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
-
-        const div = document.createElement('div');
-        div.className = 'bg-slate-800 rounded-2xl p-5 flex gap-4';
-        div.innerHTML = `
-          <div class="flex-1">
-            <div class="flex justify-between items-start gap-3">
-              <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
-              <div class="flex items-center gap-2">
-                <div class="accent-switch">
-                  <button class="accent-pill ${item.accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('server', ${realIndex}, 'us')">US</button>
-                  <button class="accent-pill ${item.accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('server', ${realIndex}, 'uk')">UK</button>
-                </div>
-                <button class="pronounce-btn !w-9 !h-9" onclick="event.stopPropagation(); triggerPronunciation('server', ${realIndex})">🔊</button>
-              </div>
-            </div>
-
-            <div class="text-slate-400 text-xs mt-1">${escapeHTML(item.pronunciationText || '')}</div>
-
-            <div class="mt-2 flex items-center gap-2 flex-wrap">
-              ${dueInfo}
-            </div>
-
-            <div class="mt-3">
-              <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">${escapeHTML(getMeaningLabel())}</div>
-
-              ${editing ? `
-                <input
-                  id="edit-native-${realIndex}"
-                  class="edit-input"
-                  type="text"
-                  value="${escapeHTML(item.nativeMeaning)}"
-                  onclick="event.stopPropagation()"
-                />
-                <div class="flex justify-end gap-2 mt-2">
-                  <button onclick="saveMeaningEdit(${realIndex});event.stopPropagation()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">
-                    Save
-                  </button>
-                  <button onclick="cancelMeaningEdit(${realIndex});event.stopPropagation()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2 rounded-xl">
-                    Cancel
-                  </button>
-                </div>
-              ` : `
-                <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(item.nativeMeaning)}</div>
-                <div class="flex justify-end mt-2">
-                  <button onclick="toggleMeaningEdit(${realIndex});event.stopPropagation()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl">
-                    Edit Meaning
-                  </button>
-                </div>
-              `}
-            </div>
-
-            <div class="text-blue-300 text-xs mt-3 italic">${escapeHTML((item.meaning || '').substring(0,90))}${(item.meaning || '').length > 90 ? '...' : ''}</div>
-            <div class="text-slate-400 text-xs mt-2">${escapeHTML(item.partOfSpeech || '')}</div>
-
-            <div class="mt-3">
-              <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">Synonyms</div>
-              <div>${renderWordChips(item.synonyms, 'synonym')}</div>
-            </div>
-
-            <div class="mt-3">
-              <div class="text-[11px] uppercase tracking-widest text-red-300 mb-1">Antonyms</div>
-              <div>${renderWordChips(item.antonyms, 'antonym')}</div>
-            </div>
-          </div>
-
-          <button onclick="deleteFromServer(${realIndex});event.stopImmediatePropagation()" class="text-red-400 hover:text-red-500 text-2xl self-start">×</button>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function openServerModal() {
-      document.getElementById('server-modal').classList.remove('hidden');
-      updateServerCount();
-      updateKnownCounts();
-      renderServerList();
-    }
-
-    function deleteFromServer(i) {
-      savedWords.splice(i, 1);
+    if (sourceType === 'server') {
+      savedWords[index].accent = accent;
       persistSavedWords();
       renderServerList();
-      updateKnownCounts();
+      return;
     }
 
-    function hideServerModal() {
-      document.getElementById('server-modal').classList.add('hidden');
-    }
-
-    function openKnownModal() {
-      const knownWords = getKnownWords();
-      const list = document.getElementById('known-list');
-      list.innerHTML = '';
-
-      if (!knownWords.length) {
-        list.innerHTML = `<div class="text-center py-12 text-slate-400">No words in You know Vocabulary yet.</div>`;
-      } else {
-        knownWords
-          .sort((a, b) => {
-            if (a.permanentlyKnown && !b.permanentlyKnown) return -1;
-            if (!a.permanentlyKnown && b.permanentlyKnown) return 1;
-            return (a.due || 0) - (b.due || 0);
-          })
-          .forEach(item => {
-            const dueInfo = item.permanentlyKnown
-              ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
-              : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
-
-            const div = document.createElement('div');
-            div.className = 'bg-slate-800 rounded-2xl p-5';
-            div.innerHTML = `
-              <div class="flex justify-between items-start gap-4">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
-                    ${dueInfo}
-                  </div>
-                  <div class="text-slate-400 text-xs mt-1">${escapeHTML(item.pronunciationText || '')}</div>
-                  <div class="native-text text-emerald-400 text-lg mt-2">${escapeHTML(item.nativeMeaning)}</div>
-                  <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML(item.meaning || '')}</div>
-                </div>
-              </div>
-            `;
-            list.appendChild(div);
-          });
-      }
-
-      updateKnownCounts();
-      document.getElementById('known-modal').classList.remove('hidden');
-    }
-
-    function hideKnownModal() {
-      document.getElementById('known-modal').classList.add('hidden');
-    }
-
-    function rebuildStudyQueue(preferredFront = null) {
-      serverStudyCards = getDueStudyWords()
-        .sort((a, b) => (a.due || 0) - (b.due || 0))
-        .map(c => ({ ...c }));
-
-      if (!serverStudyCards.length) {
-        document.getElementById('server-card-number').textContent = 0;
-        document.getElementById('server-total-cards').textContent = 0;
-        document.getElementById('server-front-word').textContent = "Done";
-        document.getElementById('server-back-content').innerHTML = `
-          <div class="text-center w-full">
-            <div class="text-2xl font-bold text-slate-700 mb-3">No due words right now</div>
-            <div class="text-slate-500 mb-6">Words will come back automatically when their time is over.</div>
-            <div class="text-violet-700 font-semibold">Check "You know Vocabulary" to see hidden or known words.</div>
-          </div>
-        `;
-        document.getElementById('server-flashcard').classList.remove('flipped');
-        serverStudyIndex = 0;
-        updateKnownCounts();
-        return;
-      }
-
-      let newIndex = 0;
-      if (preferredFront) {
-        const found = serverStudyCards.findIndex(c => c.front === preferredFront);
-        if (found >= 0) newIndex = found;
-        else newIndex = Math.min(serverStudyIndex, serverStudyCards.length - 1);
-      } else {
-        newIndex = Math.min(serverStudyIndex, serverStudyCards.length - 1);
-      }
-
-      serverStudyIndex = Math.max(0, newIndex);
-      updateKnownCounts();
+    if (sourceType === 'studyNow') {
+      const card = serverStudyCards[index];
+      if (!card) return;
+      card.accent = accent;
+      const original = savedWords.find(s => s.front === card.front);
+      if (original) original.accent = accent;
+      persistSavedWords();
       renderServerStudyCard();
     }
+  }
 
-    function startServerStudy() {
-      if (!savedWords.length) {
-        alert("Your server is empty!\nPush some words first.");
-        return;
-      }
-
-      document.getElementById('input-screen').classList.add('hidden');
-      document.getElementById('study-screen').classList.add('hidden');
-      document.getElementById('server-modal').classList.add('hidden');
-      document.getElementById('server-study-screen').classList.remove('hidden');
-
-      serverStudyIndex = 0;
-      serverIsFlipped = false;
-      rebuildStudyQueue();
-      updateKnownCounts();
+  function triggerPronunciation(sourceType, index) {
+    if (sourceType === 'passage') {
+      const card = cards[index];
+      if (!card) return;
+      playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+      return;
     }
 
-    function renderServerStudyCard() {
-      if (!serverStudyCards.length) {
-        rebuildStudyQueue();
-        return;
-      }
-
-      const card = serverStudyCards[serverStudyIndex];
-      document.getElementById('server-card-number').textContent = serverStudyIndex + 1;
-      document.getElementById('server-total-cards').textContent = serverStudyCards.length;
-      document.getElementById('server-front-word').textContent = card.front;
-
-      const ex = card.examples || {};
-
-      document.getElementById('server-back-content').innerHTML = `
-        <div class="native-card mb-3">
-          <div class="text-xs uppercase tracking-widest text-violet-700 mb-2">${escapeHTML(getMeaningLabel())}</div>
-          <div class="native-text text-violet-900">${escapeHTML(card.nativeMeaning)}</div>
-        </div>
-
-        <div class="english-card mb-3">
-          <div class="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2">📖 Meaning in English</div>
-          <div class="text-slate-800 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Not available')}</div>
-          <div class="mt-2 text-[11px] text-slate-500">
-            ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
-          </div>
-          ${pronunciationRowHTML(card, 'studyNow', serverStudyIndex)}
-        </div>
-
-        <div class="mini-card mb-3">
-          <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
-          <div>${renderWordChips(card.synonyms, 'synonym')}</div>
-        </div>
-
-        <div class="mini-card mb-3">
-          <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
-          <div>${renderWordChips(card.antonyms, 'antonym')}</div>
-        </div>
-
-        <div class="mini-card">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">💡 Example Sentences</div>
-          <div class="space-y-2">
-            <div class="bg-green-50 rounded-xl p-3">
-              <div class="flex items-center gap-2 mb-1"><span class="badge-easy">EASY</span></div>
-              <div class="text-slate-700 text-[13px] leading-relaxed">${highlightWord(ex.easy || '—', card.front)}</div>
-            </div>
-            <div class="bg-yellow-50 rounded-xl p-3">
-              <span class="badge-medium">MEDIUM</span>
-              <div class="text-slate-700 text-[13px] leading-relaxed mt-1">${highlightWord(ex.medium || '—', card.front)}</div>
-            </div>
-            <div class="bg-red-50 rounded-xl p-3">
-              <span class="badge-hard">HARD</span>
-              <div class="text-slate-700 text-[13px] leading-relaxed mt-1">${highlightWord(ex.hard || '—', card.front)}</div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      serverIsFlipped = false;
-      document.getElementById('server-flashcard').classList.remove('flipped');
-      updateKnownCounts();
+    if (sourceType === 'server') {
+      const card = savedWords[index];
+      if (!card) return;
+      playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
+      return;
     }
 
-    function serverFlipCard() {
-      serverIsFlipped = !serverIsFlipped;
-      document.getElementById('server-flashcard').classList.toggle('flipped', serverIsFlipped);
+    if (sourceType === 'studyNow') {
+      const card = serverStudyCards[index];
+      if (!card) return;
+      playWordPronunciation(card.front, card.accent, card.pronunciationAudioUS, card.pronunciationAudioUK);
     }
+  }
 
-    function rateServerCard(type, minutes) {
-      if (!serverStudyCards.length) return;
+  function pushToServer() {
+    const card = cards[currentIndex];
+    if (savedWords.some(w => w.front === card.front)) return alert("Already saved!");
 
-      const card = serverStudyCards[serverStudyIndex];
-      const original = savedWords.find(s => s.front === card.front);
-      if (!original) return;
+    savedWords.unshift({
+      front: card.front,
+      nativeMeaning: card.nativeMeaning,
+      back: card.back,
+      meaning: card.meaning,
+      partOfSpeech: card.partOfSpeech,
+      synonyms: card.synonyms,
+      antonyms: card.antonyms,
+      examples: card.examples,
+      editingMeaning: false,
+      easyStreak: 0,
+      permanentlyKnown: false,
+      date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+      due: Date.now(),
+      interval: 0,
+      accent: card.accent || 'us',
+      pronunciationText: card.pronunciationText || '',
+      pronunciationAudioUS: card.pronunciationAudioUS || '',
+      pronunciationAudioUK: card.pronunciationAudioUK || ''
+    });
 
-      if (type === 'easy') original.easyStreak = (original.easyStreak || 0) + 1;
-      else original.easyStreak = 0;
+    persistSavedWords();
+    showToast("✅ Pushed to server!");
+  }
 
-      if (original.easyStreak >= 3) {
-        original.permanentlyKnown = true;
-        original.due = Number.MAX_SAFE_INTEGER;
-        showToast(`🎉 "${original.front}" is permanently in You know Vocabulary!`);
-      } else {
-        original.permanentlyKnown = false;
-        original.due = Date.now() + minutes * 60 * 1000;
-      }
-
-      persistSavedWords();
-
-      const msg = type === 'again' ? "Again → 1 minute" :
-                  type === 'hard' ? "Hard → 10 minutes" :
-                  type === 'good' ? "Good → 1 day" :
-                  "Easy → 5 days";
-
-      showToast(`✅ Rated! Next review: ${msg}`);
-      showDesktopTipOnce();
-      rebuildStudyQueue();
-    }
-
-    function finishServerStudy() {
-      document.getElementById('server-study-screen').classList.add('hidden');
-      document.getElementById('input-screen').classList.remove('hidden');
-      showToast("🎉 Session Complete! Back to Passage → Vocabulary");
-    }
-
-    function restart() {
-      document.getElementById('study-screen').classList.add('hidden');
-      document.getElementById('input-screen').classList.remove('hidden');
-      document.getElementById('passage').value = '';
-      cards = [];
-    }
-
-    function clearInput() {
-      document.getElementById('passage').value = '';
-    }
-
-    document.addEventListener('keydown', e => {
-      const target = e.target;
-
-      if (!document.getElementById('server-study-screen').classList.contains('hidden')) {
-        if (shouldIgnoreShortcutTarget(target)) return;
-
-        if (!isDesktop()) {
-          if (e.key.toLowerCase() === 'f') serverFlipCard();
-          return;
-        }
-
-        const k = e.key.toLowerCase();
-        if (k === 'f') serverFlipCard();
-        if (k === 'a') { e.preventDefault(); rateServerCard('again', 1); }
-        if (k === 'h') { e.preventDefault(); rateServerCard('hard', 10); }
-        if (k === 'g') { e.preventDefault(); rateServerCard('good', 1440); }
-        if (k === 'e') { e.preventDefault(); rateServerCard('easy', 7200); }
-      } else if (!document.getElementById('study-screen').classList.contains('hidden')) {
-        if (shouldIgnoreShortcutTarget(target)) return;
-        if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(); }
-        if (e.key === "ArrowLeft") { e.preventDefault(); prevCard(); }
-        if (e.key.toLowerCase() === "f") flipCard();
+  function pushAllToServer() {
+    let added = 0;
+    cards.forEach(card => {
+      if (!savedWords.some(w => w.front === card.front)) {
+        savedWords.unshift({
+          front: card.front,
+          nativeMeaning: card.nativeMeaning,
+          back: card.back,
+          meaning: card.meaning,
+          partOfSpeech: card.partOfSpeech,
+          synonyms: card.synonyms,
+          antonyms: card.antonyms,
+          examples: card.examples,
+          editingMeaning: false,
+          easyStreak: 0,
+          permanentlyKnown: false,
+          date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+          due: Date.now(),
+          interval: 0,
+          accent: card.accent || 'us',
+          pronunciationText: card.pronunciationText || '',
+          pronunciationAudioUS: card.pronunciationAudioUS || '',
+          pronunciationAudioUK: card.pronunciationAudioUK || ''
+        });
+        added++;
       }
     });
 
-    window.onload = () => {
-      initLanguageGate();
-      updateServerCount();
+    persistSavedWords();
+    showToast(`✅ ${added} words added to server!`);
+    hideAllCards();
+  }
+
+  function deleteAllFromServer() {
+    if (!savedWords.length) {
+      alert("Server is already empty!");
+      return;
+    }
+
+    const ok = confirm("Are you sure you want to delete ALL saved vocabulary from server?");
+    if (!ok) return;
+
+    savedWords = [];
+    persistSavedWords();
+    openServerModal();
+    showToast("🗑️ All vocabulary deleted from server!");
+  }
+
+  function toggleMeaningEdit(index) {
+    savedWords[index].editingMeaning = !savedWords[index].editingMeaning;
+    persistSavedWords();
+    openServerModal();
+    if (savedWords[index].editingMeaning) {
+      setTimeout(() => {
+        const input = document.getElementById(`edit-native-${index}`);
+        if (input) {
+          input.focus();
+          input.setSelectionRange(input.value.length, input.value.length);
+        }
+      }, 0);
+    }
+  }
+
+  function cancelMeaningEdit(index) {
+    savedWords[index].editingMeaning = false;
+    persistSavedWords();
+    openServerModal();
+  }
+
+  function saveMeaningEdit(index) {
+    const input = document.getElementById(`edit-native-${index}`);
+    if (!input) return;
+
+    const rawValue = input.value;
+    const cleaned = rawValue.trim().replace(/[ ]{2,}/g, ' ');
+    if (!cleaned) {
+      alert(`${getMeaningLabel()} cannot be empty.`);
+      return;
+    }
+
+    savedWords[index].nativeMeaning = cleaned;
+    savedWords[index].editingMeaning = false;
+    persistSavedWords();
+    openServerModal();
+    showToast("✅ Meaning updated!");
+  }
+
+  function exportServerCSV() {
+    if (!savedWords.length) return alert("Nothing to export!");
+    let csv = `English\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\tEasy Example\tMedium Example\tHard Example\tDue\tEasy Streak\tPermanent Known\tDate\n`;
+
+    savedWords.forEach(item => {
+      const safeBack = (item.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
+      const safeMeaning = (item.meaning || '').replace(/\t/g, ' ');
+      const safeSynonyms = (item.synonyms || []).join(', ').replace(/\t/g, ' ');
+      const safeAntonyms = (item.antonyms || []).join(', ').replace(/\t/g, ' ');
+      const dueText = item.permanentlyKnown ? 'Permanent' : new Date(item.due || Date.now()).toLocaleString();
+      const ex = item.examples || {};
+      csv += `"${item.front}"\t"${item.nativeMeaning}"\t"${safeMeaning}"\t"${item.pronunciationText || ''}"\t"${item.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\t"${(ex.easy || '').replace(/\t/g,' ')}"\t"${(ex.medium || '').replace(/\t/g,' ')}"\t"${(ex.hard || '').replace(/\t/g,' ')}"\t"${dueText}"\t"${item.easyStreak || 0}"\t"${item.permanentlyKnown ? 'Yes' : 'No'}"\t"${item.date || ''}"\n`;
+    });
+
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'My_SRS_Server.csv';
+    a.click();
+  }
+
+  function downloadForAnki() {
+    let csv = `English (Base Form)\t${getMeaningLabel()}\tMeaning in English\tPronunciation\tPart Of Speech\tSynonyms\tAntonyms\tContext\n`;
+    cards.forEach(card => {
+      const safeBack = (card.back || '').replace(/\n/g, ' \\n ').replace(/\t/g, ' ');
+      const safeMeaning = (card.meaning || '').replace(/\t/g, ' ');
+      const safeSynonyms = (card.synonyms || []).join(', ').replace(/\t/g, ' ');
+      const safeAntonyms = (card.antonyms || []).join(', ').replace(/\t/g, ' ');
+      csv += `"${card.front}"\t"${card.nativeMeaning}"\t"${safeMeaning}"\t"${card.pronunciationText || ''}"\t"${card.partOfSpeech || ''}"\t"${safeSynonyms}"\t"${safeAntonyms}"\t"${safeBack}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'passage_vocabulary.csv';
+    a.click();
+  }
+
+  function showAllCards() {
+    const container = document.getElementById('all-cards-list');
+    container.innerHTML = '';
+
+    cards.forEach((card, i) => {
+      const div = document.createElement('div');
+      div.className = 'bg-slate-800 rounded-2xl p-5 hover:bg-slate-700 transition cursor-pointer';
+      div.innerHTML = `
+        <div class="flex gap-4 items-start">
+          <div class="font-mono text-emerald-400 text-xl font-bold">${i+1}</div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between gap-3">
+              <div class="font-semibold text-lg">${escapeHTML(card.front)}</div>
+              <div class="flex items-center gap-2">
+                <div class="accent-switch">
+                  <button class="accent-pill ${card.accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('passage', ${i}, 'us')">US</button>
+                  <button class="accent-pill ${card.accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('passage', ${i}, 'uk')">UK</button>
+                </div>
+                <button class="pronounce-btn !w-9 !h-9" onclick="event.stopPropagation(); triggerPronunciation('passage', ${i})">🔊</button>
+              </div>
+            </div>
+            <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(card.nativeMeaning)}</div>
+            <div class="text-slate-400 text-xs mt-1">${escapeHTML(card.pronunciationText || '')}</div>
+            <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML((card.meaning || '').substring(0,90))}${(card.meaning || '').length > 90 ? '...' : ''}</div>
+            <div class="text-slate-400 text-xs mt-2">${escapeHTML(card.partOfSpeech || '')}</div>
+            <div class="mt-3">
+              <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">Synonyms</div>
+              <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+            </div>
+            <div class="mt-3">
+              <div class="text-[11px] uppercase tracking-widest text-red-300 mb-1">Antonyms</div>
+              <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      div.onclick = () => {
+        currentIndex = i;
+        hideAllCards();
+        renderCurrentCard();
+      };
+      container.appendChild(div);
+    });
+
+    document.getElementById('all-cards-modal').classList.remove('hidden');
+  }
+
+  function hideAllCards() {
+    document.getElementById('all-cards-modal').classList.add('hidden');
+  }
+
+  function getServerSearchQuery() {
+    return (document.getElementById('server-search')?.value || '').trim().toLowerCase();
+  }
+
+  function renderServerList() {
+    const container = document.getElementById('server-list');
+    const q = getServerSearchQuery();
+    container.innerHTML = '';
+
+    let list = savedWords;
+    if (q) {
+      list = savedWords.filter(item => {
+        const hay = [
+          item.front,
+          item.nativeMeaning,
+          item.meaning,
+          item.pronunciationText,
+          ...(item.synonyms || []),
+          ...(item.antonyms || [])
+        ].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    if (!list.length) {
+      container.innerHTML = `<div class="text-center py-12 text-slate-400">${q ? 'No matching vocabulary found.' : 'Your server is empty.<br>Push some words!'}</div>`;
+      return;
+    }
+
+    list.forEach(item => {
+      const realIndex = savedWords.findIndex(w => w.front === item.front);
+      const editing = !!savedWords[realIndex].editingMeaning;
+      const dueInfo = item.permanentlyKnown
+        ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
+        : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
+
+      const div = document.createElement('div');
+      div.className = 'bg-slate-800 rounded-2xl p-5 flex gap-4';
+      div.innerHTML = `
+        <div class="flex-1">
+          <div class="flex justify-between items-start gap-3">
+            <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
+            <div class="flex items-center gap-2">
+              <div class="accent-switch">
+                <button class="accent-pill ${item.accent === 'us' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('server', ${realIndex}, 'us')">US</button>
+                <button class="accent-pill ${item.accent === 'uk' ? 'active' : ''}" onclick="event.stopPropagation(); setAccent('server', ${realIndex}, 'uk')">UK</button>
+              </div>
+              <button class="pronounce-btn !w-9 !h-9" onclick="event.stopPropagation(); triggerPronunciation('server', ${realIndex})">🔊</button>
+            </div>
+          </div>
+
+          <div class="text-slate-400 text-xs mt-1">${escapeHTML(item.pronunciationText || '')}</div>
+
+          <div class="mt-2 flex items-center gap-2 flex-wrap">
+            ${dueInfo}
+          </div>
+
+          <div class="mt-3">
+            <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">${escapeHTML(getMeaningLabel())}</div>
+
+            ${editing ? `
+              <input
+                id="edit-native-${realIndex}"
+                class="edit-input"
+                type="text"
+                value="${escapeHTML(item.nativeMeaning)}"
+                onclick="event.stopPropagation()"
+              />
+              <div class="flex justify-end gap-2 mt-2">
+                <button onclick="saveMeaningEdit(${realIndex});event.stopPropagation()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">
+                  Save
+                </button>
+                <button onclick="cancelMeaningEdit(${realIndex});event.stopPropagation()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2 rounded-xl">
+                  Cancel
+                </button>
+              </div>
+            ` : `
+              <div class="native-text text-emerald-400 text-lg mt-1">${escapeHTML(item.nativeMeaning)}</div>
+              <div class="flex justify-end mt-2">
+                <button onclick="toggleMeaningEdit(${realIndex});event.stopPropagation()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl">
+                  Edit Meaning
+                </button>
+              </div>
+            `}
+          </div>
+
+          <div class="text-blue-300 text-xs mt-3 italic">${escapeHTML((item.meaning || '').substring(0,90))}${(item.meaning || '').length > 90 ? '...' : ''}</div>
+          <div class="text-slate-400 text-xs mt-2">${escapeHTML(item.partOfSpeech || '')}</div>
+
+          <div class="mt-3">
+            <div class="text-[11px] uppercase tracking-widest text-emerald-300 mb-1">Synonyms</div>
+            <div>${renderWordChips(item.synonyms, 'synonym')}</div>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-[11px] uppercase tracking-widest text-red-300 mb-1">Antonyms</div>
+            <div>${renderWordChips(item.antonyms, 'antonym')}</div>
+          </div>
+        </div>
+
+        <button onclick="deleteFromServer(${realIndex});event.stopImmediatePropagation()" class="text-red-400 hover:text-red-500 text-2xl self-start">×</button>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function openServerModal() {
+    document.getElementById('server-modal').classList.remove('hidden');
+    updateServerCount();
+    updateKnownCounts();
+    renderServerList();
+  }
+
+  function deleteFromServer(i) {
+    savedWords.splice(i, 1);
+    persistSavedWords();
+    renderServerList();
+    updateKnownCounts();
+  }
+
+  function hideServerModal() {
+    document.getElementById('server-modal').classList.add('hidden');
+  }
+
+  function openKnownModal() {
+    const knownWords = getKnownWords();
+    const list = document.getElementById('known-list');
+    list.innerHTML = '';
+
+    if (!knownWords.length) {
+      list.innerHTML = `<div class="text-center py-12 text-slate-400">No words in You know Vocabulary yet.</div>`;
+    } else {
+      knownWords
+        .sort((a, b) => {
+          if (a.permanentlyKnown && !b.permanentlyKnown) return -1;
+          if (!a.permanentlyKnown && b.permanentlyKnown) return 1;
+          return (a.due || 0) - (b.due || 0);
+        })
+        .forEach(item => {
+          const dueInfo = item.permanentlyKnown
+            ? `<span class="badge-permanent">Congratulations — you know it permanently</span>`
+            : `<span class="badge-known">Returns in ${escapeHTML(formatRemainingTime((item.due || 0) - Date.now()))}</span>`;
+
+          const div = document.createElement('div');
+          div.className = 'bg-slate-800 rounded-2xl p-5';
+          div.innerHTML = `
+            <div class="flex justify-between items-start gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <div class="font-semibold text-lg">${escapeHTML(item.front)}</div>
+                  ${dueInfo}
+                </div>
+                <div class="text-slate-400 text-xs mt-1">${escapeHTML(item.pronunciationText || '')}</div>
+                <div class="native-text text-emerald-400 text-lg mt-2">${escapeHTML(item.nativeMeaning)}</div>
+                <div class="text-blue-300 text-xs mt-2 italic">${escapeHTML(item.meaning || '')}</div>
+              </div>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+    }
+
+    updateKnownCounts();
+    document.getElementById('known-modal').classList.remove('hidden');
+  }
+
+  function hideKnownModal() {
+    document.getElementById('known-modal').classList.add('hidden');
+  }
+
+  function rebuildStudyQueue(preferredFront = null) {
+    serverStudyCards = getDueStudyWords()
+      .sort((a, b) => (a.due || 0) - (b.due || 0))
+      .map(c => ({ ...c }));
+
+    if (!serverStudyCards.length) {
+      document.getElementById('server-card-number').textContent = 0;
+      document.getElementById('server-total-cards').textContent = 0;
+      document.getElementById('server-front-word').textContent = "Done";
+      document.getElementById('server-back-content').innerHTML = `
+        <div class="text-center w-full">
+          <div class="text-2xl font-bold text-slate-700 mb-3">No due words right now</div>
+          <div class="text-slate-500 mb-6">Words will come back automatically when their time is over.</div>
+          <div class="text-violet-700 font-semibold">Check "You know Vocabulary" to see hidden or known words.</div>
+        </div>
+      `;
+      document.getElementById('server-flashcard').classList.remove('flipped');
+      serverStudyIndex = 0;
       updateKnownCounts();
-    };
-  </script>
+      return;
+    }
+
+    let newIndex = 0;
+    if (preferredFront) {
+      const found = serverStudyCards.findIndex(c => c.front === preferredFront);
+      if (found >= 0) newIndex = found;
+      else newIndex = Math.min(serverStudyIndex, serverStudyCards.length - 1);
+    } else {
+      newIndex = Math.min(serverStudyIndex, serverStudyCards.length - 1);
+    }
+
+    serverStudyIndex = Math.max(0, newIndex);
+    updateKnownCounts();
+    renderServerStudyCard();
+  }
+
+  function startServerStudy() {
+    if (!savedWords.length) {
+      alert("Your server is empty!\nPush some words first.");
+      return;
+    }
+
+    document.getElementById('input-screen').classList.add('hidden');
+    document.getElementById('study-screen').classList.add('hidden');
+    document.getElementById('server-modal').classList.add('hidden');
+    document.getElementById('server-study-screen').classList.remove('hidden');
+
+    serverStudyIndex = 0;
+    serverIsFlipped = false;
+    rebuildStudyQueue();
+    updateKnownCounts();
+  }
+
+  function renderServerStudyCard() {
+    if (!serverStudyCards.length) {
+      rebuildStudyQueue();
+      return;
+    }
+
+    const card = serverStudyCards[serverStudyIndex];
+    document.getElementById('server-card-number').textContent = serverStudyIndex + 1;
+    document.getElementById('server-total-cards').textContent = serverStudyCards.length;
+    document.getElementById('server-front-word').textContent = card.front;
+
+    const ex = card.examples || {};
+
+    document.getElementById('server-back-content').innerHTML = `
+      <div class="native-card mb-3">
+        <div class="text-xs uppercase tracking-widest text-violet-700 mb-2">${escapeHTML(getMeaningLabel())}</div>
+        <div class="native-text text-violet-900">${escapeHTML(card.nativeMeaning)}</div>
+      </div>
+
+      <div class="english-card mb-3">
+        <div class="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-2">📖 Meaning in English</div>
+        <div class="text-slate-800 text-[14px] leading-relaxed italic">${escapeHTML(card.meaning || 'Not available')}</div>
+        <div class="mt-2 text-[11px] text-slate-500">
+          ${card.partOfSpeech ? `Part of speech: ${escapeHTML(card.partOfSpeech)}` : ''}
+        </div>
+        ${pronunciationRowHTML(card, 'studyNow', serverStudyIndex)}
+      </div>
+
+      <div class="mini-card mb-3">
+        <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest mb-2">🔁 Synonyms</div>
+        <div>${renderWordChips(card.synonyms, 'synonym')}</div>
+      </div>
+
+      <div class="mini-card mb-3">
+        <div class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-2">↔️ Antonyms</div>
+        <div>${renderWordChips(card.antonyms, 'antonym')}</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">💡 Example Sentences</div>
+        <div class="space-y-2">
+          <div class="bg-green-50 rounded-xl p-3">
+            <div class="flex items-center gap-2 mb-1"><span class="badge-easy">EASY</span></div>
+            <div class="text-slate-700 text-[13px] leading-relaxed">${highlightWord(ex.easy || '—', card.front)}</div>
+          </div>
+          <div class="bg-yellow-50 rounded-xl p-3">
+            <span class="badge-medium">MEDIUM</span>
+            <div class="text-slate-700 text-[13px] leading-relaxed mt-1">${highlightWord(ex.medium || '—', card.front)}</div>
+          </div>
+          <div class="bg-red-50 rounded-xl p-3">
+            <span class="badge-hard">HARD</span>
+            <div class="text-slate-700 text-[13px] leading-relaxed mt-1">${highlightWord(ex.hard || '—', card.front)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    serverIsFlipped = false;
+    document.getElementById('server-flashcard').classList.remove('flipped');
+    updateKnownCounts();
+  }
+
+  function serverFlipCard() {
+    serverIsFlipped = !serverIsFlipped;
+    document.getElementById('server-flashcard').classList.toggle('flipped', serverIsFlipped);
+  }
+
+  function rateServerCard(type, minutes) {
+    if (!serverStudyCards.length) return;
+
+    const card = serverStudyCards[serverStudyIndex];
+    const original = savedWords.find(s => s.front === card.front);
+    if (!original) return;
+
+    if (type === 'easy') original.easyStreak = (original.easyStreak || 0) + 1;
+    else original.easyStreak = 0;
+
+    if (original.easyStreak >= 3) {
+      original.permanentlyKnown = true;
+      original.due = Number.MAX_SAFE_INTEGER;
+      showToast(`🎉 "${original.front}" is permanently in You know Vocabulary!`);
+    } else {
+      original.permanentlyKnown = false;
+      original.due = Date.now() + minutes * 60 * 1000;
+    }
+
+    persistSavedWords();
+
+    const msg = type === 'again' ? "Again → 1 minute" :
+                type === 'hard' ? "Hard → 10 minutes" :
+                type === 'good' ? "Good → 1 day" :
+                "Easy → 5 days";
+
+    showToast(`✅ Rated! Next review: ${msg}`);
+    showDesktopTipOnce();
+    rebuildStudyQueue();
+  }
+
+  function finishServerStudy() {
+    document.getElementById('server-study-screen').classList.add('hidden');
+    document.getElementById('input-screen').classList.remove('hidden');
+    showToast("🎉 Session Complete! Back to Passage → Vocabulary");
+  }
+
+  function restart() {
+    document.getElementById('study-screen').classList.add('hidden');
+    document.getElementById('input-screen').classList.remove('hidden');
+    document.getElementById('passage').value = '';
+    cards = [];
+  }
+
+  function clearInput() {
+    document.getElementById('passage').value = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    const target = e.target;
+
+    if (!document.getElementById('server-study-screen').classList.contains('hidden')) {
+      if (shouldIgnoreShortcutTarget(target)) return;
+
+      if (!isDesktop()) {
+        if (e.key.toLowerCase() === 'f') serverFlipCard();
+        return;
+      }
+
+      const k = e.key.toLowerCase();
+      if (k === 'f') serverFlipCard();
+      if (k === 'a') { e.preventDefault(); rateServerCard('again', 1); }
+      if (k === 'h') { e.preventDefault(); rateServerCard('hard', 10); }
+      if (k === 'g') { e.preventDefault(); rateServerCard('good', 1440); }
+      if (k === 'e') { e.preventDefault(); rateServerCard('easy', 7200); }
+    } else if (!document.getElementById('study-screen').classList.contains('hidden')) {
+      if (shouldIgnoreShortcutTarget(target)) return;
+      if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); prevCard(); }
+      if (e.key.toLowerCase() === "f") flipCard();
+    }
+  });
+
+  window.onload = () => {
+    initLanguageGate();
+    updateServerCount();
+    updateKnownCounts();
+  };
+</script>
 </body>
 </html>
